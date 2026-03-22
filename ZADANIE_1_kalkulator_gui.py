@@ -159,6 +159,7 @@ def klikniecie_rowna_sie():
 
     # oblicza wynik działania
     wynik = oblicz(pierwsza_liczba, druga_liczba, operacja)
+    wynik=round(wynik, 5) if isinstance(wynik, float) else wynik
 
     # tworzy zapis działania wraz z wynikiem
     rownanie = f"{pierwsza_liczba} {operacja} {druga_liczba if druga_liczba is not None else ''} = \n{wynik}"
