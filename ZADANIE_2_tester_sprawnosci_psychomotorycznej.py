@@ -25,7 +25,6 @@ class PsychoTesterApp:
         self.width = self.base_width
         self.height = self.base_height
         
-        # Flaga pygame.RESIZABLE aktywuje natywne przyciski systemowe do zmiany rozmiaru/pełnego ekranu
         self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
         pygame.display.set_caption("Tester Sprawności Psychomotorycznej")
         
@@ -85,7 +84,6 @@ class PsychoTesterApp:
             if event.type == pygame.QUIT:
                 self.quit_app()
                 
-            # Obsługa zmiany rozmiaru okna przez system (np. kliknięcie zielonej kuleczki na Macu)
             if event.type == pygame.VIDEORESIZE:
                 self.width = event.w
                 self.height = event.h
