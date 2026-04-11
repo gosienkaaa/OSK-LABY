@@ -193,14 +193,11 @@ def aktualizuj_stan_produkcji():
     dt = teraz - ostatnia_aktualizacja_produkcji
     ostatnia_aktualizacja_produkcji = teraz
 
-    # czas pracy
     stan_produkcji["czas_pracy_h"] = (teraz - czas_startu_linii) / 3600.0
 
-    # aktualna wydajność chwilowa
     odchylenie = random.uniform(-5.0, 5.0)
     aktualna_wydajnosc = bazowa_wydajnosc_na_godzine + odchylenie
 
-    # wpływ warunków procesu
     if silnik.temperatura > 80:
         aktualna_wydajnosc -= 15
 
@@ -216,14 +213,11 @@ def aktualizuj_stan_produkcji():
     stan_produkcji["wydajnosc_procentowa"] = round((aktualna_wydajnosc / bazowa_wydajnosc_na_godzine) * 100, 1)
     stan_produkcji["czas_cyklu_min"] = round(60.0 / aktualna_wydajnosc, 2)
 
-    # przyrost produkcji
     przyrost_jednostek = aktualna_wydajnosc * (dt / 3600.0)
     stan_produkcji["liczba_jednostek"] += przyrost_jednostek
 
-    # zużycie surowców
     stan_produkcji["zuzycie_surowcow_kg"] = round(stan_produkcji["liczba_jednostek"] * 0.5, 2)
 
-    # braki / jakość
     procent_brakow = random.uniform(1.0, 3.0)
     przewidywane_wadliwe = int(stan_produkcji["liczba_jednostek"] * procent_brakow / 100.0)
     stan_produkcji["wadliwe_jednostki"] = przewidywane_wadliwe
@@ -233,7 +227,6 @@ def aktualizuj_stan_produkcji():
             (stan_produkcji["wadliwe_jednostki"] / stan_produkcji["liczba_jednostek"]) * 100.0, 2
         )
 
-    # zużycie energii
     moc_chwilowa_kw = random.uniform(18.0, 24.0)
     if silnik.temperatura > 80:
         moc_chwilowa_kw += 3.0
@@ -313,6 +306,11 @@ class PanelDyspozytorski:
 
         self.aktualny_widok = None
 
+        self.okno_potwierdzenia = None
+        self.operator_potwierdzil_obecnosc = False
+        self.interwal_sprawdzenia_ms = 60000
+        self.czas_na_potwierdzenie_ms = 30000
+
         self.main_frame = tk.Frame(self.root, bg="lightgray")
         self.main_frame.pack(fill="both", expand=True)
 
@@ -365,6 +363,7 @@ class PanelDyspozytorski:
 
         self.pokaz_stan_urzadzen()
         self.petla_glowna_aktualizacji()
+        self.root.after(self.interwal_sprawdzenia_ms, self.wyswietl_sprawdzenie_obecnosci)
 
     def wyczysc_content(self):
         for widget in self.content_frame.winfo_children():
@@ -594,6 +593,75 @@ class PanelDyspozytorski:
         self.label_cpu.config(text=f"Użycie CPU: {cpu:.2f} %")
         self.label_ram.config(text=f"Użycie RAM: {ram:.2f} %")
         self.label_cpu_speed.config(text=f"Prędkość CPU: {cpu_speed:.2f} MHz")
+
+    # =========================
+    # SPRAWDZANIE OBECNOŚCI OPERATORA
+    # =========================
+
+    def wyswietl_sprawdzenie_obecnosci(self):
+        if self.okno_potwierdzenia is not None and self.okno_potwierdzenia.winfo_exists():
+            return
+
+        self.operator_potwierdzil_obecnosc = False
+
+        self.okno_potwierdzenia = tk.Toplevel(self.root)
+        self.okno_potwierdzenia.title("Sprawdzenie obecności operatora")
+        self.okno_potwierdzenia.geometry("450x200")
+        self.okno_potwierdzenia.resizable(False, False)
+        self.okno_potwierdzenia.grab_set()
+        self.okno_potwierdzenia.focus_force()
+
+        tk.Label(
+            self.okno_potwierdzenia,
+            text="Potwierdź obecność operatora",
+            font=("Arial", 16, "bold")
+        ).pack(pady=20)
+
+        tk.Label(
+            self.okno_potwierdzenia,
+            text="Naciśnij klawisz Enter w ciągu 30 sekund.",
+            font=("Arial", 12)
+        ).pack(pady=10)
+
+        tk.Label(
+            self.okno_potwierdzenia,
+            text="Brak potwierdzenia spowoduje alarm i wylogowanie.",
+            font=("Arial", 11),
+            fg="red"
+        ).pack(pady=5)
+
+        self.okno_potwierdzenia.bind("<Return>", self.potwierdz_obecnosc_klawiszem)
+
+        self.root.after(self.czas_na_potwierdzenie_ms, self.sprawdz_brak_potwierdzenia)
+
+    def potwierdz_obecnosc_klawiszem(self, event=None):
+        self.operator_potwierdzil_obecnosc = True
+
+        if self.okno_potwierdzenia is not None and self.okno_potwierdzenia.winfo_exists():
+            self.okno_potwierdzenia.destroy()
+
+        self.okno_potwierdzenia = None
+        self.root.after(self.interwal_sprawdzenia_ms, self.wyswietl_sprawdzenie_obecnosci)
+
+    def sprawdz_brak_potwierdzenia(self):
+        if self.operator_potwierdzil_obecnosc:
+            return
+
+        if self.okno_potwierdzenia is not None and self.okno_potwierdzenia.winfo_exists():
+            self.okno_potwierdzenia.destroy()
+
+        self.okno_potwierdzenia = None
+        self.uruchom_alarm_i_wyloguj()
+
+    def uruchom_alarm_i_wyloguj(self):
+        messagebox.showwarning(
+            "ALARM",
+            "Brak potwierdzenia obecności operatora przez 30 sekund.\n"
+            "Operator zostanie wylogowany z systemu."
+        )
+
+        self.root.destroy()
+        pokaz_okno_logowania()
 
 
 # =========================
