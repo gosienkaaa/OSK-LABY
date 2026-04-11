@@ -1,266 +1,703 @@
-from logging import root
-import time 
+import time
 import psutil
 import tkinter as tk
-import keyboard
 import random
 from tkinter import messagebox
 
-def sprawdzanie_obecnosci_operatora():
-    czas_początkowy = time.time()
-    print("Sprawdzanie obecności operatora. Wcisnij enter")
 
-    while czas_początkowy + 20 > time.time():
-        if keyboard.is_pressed('enter'):
-            print("Operator jest obecny.")
-            return True
+# =========================
+# DIAGNOSTYKA SYSTEMOWA
+# =========================
 
-    print("Operator nie jest obecny.")
-    return False
-
-#DIAGNOSTYKA SYSTEMOWA
 def uzycie_CPU():
-    chwilowe_uzycie_CPU = psutil.cpu_percent(interval=1)  # Obciążenie CPU w %
-    print(f"Obciążenie CPU: {chwilowe_uzycie_CPU}%")
-
-    if chwilowe_uzycie_CPU > 80:  # Przykładowy próg krytyczny
-        print("Uwaga! Obciążenie CPU przekroczyło bezpieczny poziom!")
-        #uruchamianie wentylatorów   
-    return chwilowe_uzycie_CPU
+    return psutil.cpu_percent(interval=None)
 
 def wykorzystanie_RAM():
-    chwilowe_uzycie_RAM = psutil.virtual_memory().percent  # Obciążenie RAM w %
-    print(f"Obciążenie RAM: {chwilowe_uzycie_RAM}%")
-    return chwilowe_uzycie_RAM
+    return psutil.virtual_memory().percent
 
 def predkosc_CPU():
-    chwilowa_predkosc_CPU = psutil.cpu_freq().current  # Prędkość CPU w MHz
-    print(f"Prędkość CPU: {chwilowa_predkosc_CPU} MHz")
-    return chwilowa_predkosc_CPU    
+    cpu_freq = psutil.cpu_freq()
+    if cpu_freq is not None:
+        return cpu_freq.current
+    return 0.0
 
 
-#DANE O MASZYNACH I URZADZENIACH
+# =========================
+# DANE O MASZYNACH I URZĄDZENIACH
+# =========================
+
 class Urzadzenie:
-    def __init__(self, nazwa):
+    def __init__(self, nazwa, stan="OFF"):
         self.nazwa = nazwa
-        self.stan = "OFF"
+        self.stan = stan
 
     def sprawdzenie_zalaczenia_urzadzenia(self):
-        pass
+        return self.stan
 
-    def symulacja_awarii(self):
-        pass
-
-
-zasilanie_awaryjne = Urzadzenie("zasilanie_awaryjne")
-drzwi_bezpieczenstwa = Urzadzenie("drzwi_bezpieczenstwa")
-czujnik_obecnosci = Urzadzenie("czujniki_obecności")
-naped_pneumatyczny = Urzadzenie("naped_pneumatyczny")
 
 class Silnik(Urzadzenie):
-    def __init__(self, nazwa):
-        super().__init__(nazwa)
+    def __init__(self, nazwa, stan="ON"):
+        super().__init__(nazwa, stan)
         self.temperatura = self.temperatura_startowa()
 
     def temperatura_startowa(self):
-            if self.nazwa == "silnik": #silnik i obudowa silnika jako jeden obiekt
-                temperatura = random.uniform(30.0, 90.0)  # Symulacja temperatury  w stopniach Celsjusza
-            elif self.nazwa == "pompa_chlodnicza":
-                temperatura = random.uniform(30.0, 90.0)
-            return temperatura
+        if self.nazwa == "silnik":
+            return random.uniform(45.0, 60.0)
+        elif self.nazwa == "pompa_chlodnicza":
+            return random.uniform(22.0, 35.0)
+        return random.uniform(25.0, 40.0)
 
     def monitorowanie_temperatury(self):
         return self.temperatura
 
-    def symulacja_wzrostu_temperatury(self):
-        for i in range(10):
-            temperatura += random.uniform(0.5, 2.0)  # Symulacja wzrostu temperatury
-            print(f"Symulacja wzrostu temperatury: {temperatura:.2f} °C")
-            time.sleep(1)  # Opóźnienie między kolejnymi pomiarami
+    def aktualizuj_temperature(self, linia_dziala):
+        if self.stan != "ON":
+            self.temperatura -= random.uniform(0.1, 0.3)
+        else:
+            if linia_dziala:
+                self.temperatura += random.uniform(0.1, 0.6)
+            else:
+                self.temperatura -= random.uniform(0.05, 0.2)
 
-            if temperatura > 80.0:  # Przykładowy próg krytyczny
-                print("Uwaga! Temperatura przekroczyła bezpieczny poziom!") 
-                break
-    
-pompa_chlodnicza1 = Silnik("pompa_chlodnicza") #dziedziczy po silniku bo bedzie monitorowana temperatura plynu chlodniczego
-pompa_chlodnicza2 = Silnik("pompa_chlodnicza")
-silnik=Silnik("silnik")
+        if self.nazwa == "silnik":
+            self.temperatura = max(35.0, min(self.temperatura, 95.0))
+        else:
+            self.temperatura = max(18.0, min(self.temperatura, 75.0))
+
 
 class Wentylator(Urzadzenie):
-    def __init__(self, nazwa):
-        super().__init__(nazwa)
+    def __init__(self, nazwa, stan="ON"):
+        super().__init__(nazwa, stan)
         self.obroty_wentylatora = self.predkosc_wentylatora()
 
     def predkosc_wentylatora(self):
         if self.nazwa == "wentylator_chlodzenia":
-            self.obroty_wentylatora = random.uniform(1000.0, 3000.0)  # Symulacja prędkości wentylatora w RPM
-            print(f"Prędkość wentylatora: {self.obroty_wentylatora:.2f} RPM")
+            return random.uniform(1600.0, 2400.0)
+        elif self.nazwa == "filtr_powietrza":
+            return random.uniform(700.0, 1200.0)
+        return 0.0
 
-        else:
-            self.obroty_wentylatora = 0.0
-            print("Nieznany typ wentylatora.")
-
-        return self.obroty_wentylatora
-    
     def wydajnosc_wentylatora(self):
         if self.nazwa == "wentylator_chlodzenia":
-            wydajnosc = self.obroty_wentylatora * 0.1  # Przykładowa wydajność wentylatora
-            print(f"Wydajność wentylatora: {wydajnosc:.2f} m³/h")
-        
+            return self.obroty_wentylatora * 0.1
         elif self.nazwa == "filtr_powietrza":
-            wydajnosc = self.obroty_wentylatora * 0.05  # Przykładowa wydajność wentylatora
-            print(f"Wydajność wentylatora: {wydajnosc:.2f} m³/h")
+            return self.obroty_wentylatora * 0.05
+        return 0.0
 
-        else:
-            wydajnosc = 0.0
-            print("Nieznany typ wentylatora.")
+    def aktualizuj_obroty(self, linia_dziala):
+        if self.stan != "ON":
+            self.obroty_wentylatora = 0.0
+            return
 
-        return wydajnosc
-    
-wentylator1=Wentylator("wentylator_chlodzenia")
-wentylator2=Wentylator("wentylator_chlodzenia")
-filtr_powietrza=Wentylator("filtr_powietrza")
-filtr_powietrza1=Wentylator("filtr_powietrza")
+        if self.nazwa == "wentylator_chlodzenia":
+            if linia_dziala:
+                self.obroty_wentylatora += random.uniform(-50, 80)
+            else:
+                self.obroty_wentylatora += random.uniform(-40, 40)
+            self.obroty_wentylatora = max(1400.0, min(self.obroty_wentylatora, 3000.0))
 
-#INFORMACJE O PRODUKCJI  
-#na razie przykldawoe wartosci do zmiany potem
-def wydajnosc_linii_producyjnej():
-    liczba_jednostek_produkcji_na_godzine= random.randint(50, 150)  # Symulacja liczby jednostek produkcji
-    czas_pracy_linii=0
-    wydajnosc_produkcji_procentowa = 0;
-    czas_cyklu_na_minute = 60 / liczba_jednostek_produkcji_na_godzine  # Czas cyklu produkcyjnego w minutach
-    ilosc_zuzytych_surowcow = liczba_jednostek_produkcji_na_godzine * 0.5  # Przykładowa ilość zużytych surowców
-
-#monitorowanie wartosci i komunikat gdy cos zle idzie 
-def monitorowanie_produkcji():
-    pass
+        elif self.nazwa == "filtr_powietrza":
+            if linia_dziala:
+                self.obroty_wentylatora += random.uniform(-20, 30)
+            else:
+                self.obroty_wentylatora += random.uniform(-10, 10)
+            self.obroty_wentylatora = max(600.0, min(self.obroty_wentylatora, 1500.0))
 
 
-def stan_jakosci_produkcji():
-    liczba_wadliwych_jednostek = random.randint(0, 10)  # Symulacja liczby wadliwych jednostek
-    procentowa_liczba_odpadow = (liczba_wadliwych_jednostek / 100) * 100  # Procentowa liczba odpadów
+# Urządzenia
+zasilanie_awaryjne = Urzadzenie("zasilanie awaryjne", "ON")
+drzwi_bezpieczenstwa = Urzadzenie("drzwi bezpieczeństwa", "zamknięte")
+czujnik_obecnosci = Urzadzenie("czujnik obecności operatora", "aktywne")
+naped_pneumatyczny = Urzadzenie("napęd pneumatyczny", "ON")
 
-def stan_zasilania_procesow_produkcji():
-    zuzycie_energii = random.uniform(100.0, 500.0)  # Symulacja zużycia energii w kWh
-    wydajnosc_energetyczna_maszyn= random.uniform(0.5, 1.0)  # Symulacja wydajności energetycznej maszyn (0-1)
+pompa_chlodnicza1 = Silnik("pompa_chlodnicza", "ON")
+pompa_chlodnicza2 = Silnik("pompa_chlodnicza", "ON")
+silnik = Silnik("silnik", "ON")
 
-#AWARIE I PRZEKROCZENIA PARAMETROW
+wentylator1 = Wentylator("wentylator_chlodzenia", "ON")
+wentylator2 = Wentylator("wentylator_chlodzenia", "ON")
+filtr_powietrza1 = Wentylator("filtr_powietrza", "ON")
+filtr_powietrza2 = Wentylator("filtr_powietrza", "ON")
+
+
+# =========================
+# PRODUKCJA - STAN CIĄGŁY
+# =========================
+
+linia_uruchomiona = False
+czas_startu_linii = None
+ostatnia_aktualizacja_produkcji = None
+
+bazowa_wydajnosc_na_godzine = 120.0
+
+stan_produkcji = {
+    "liczba_jednostek": 0.0,
+    "czas_pracy_h": 0.0,
+    "wydajnosc_procentowa": 0.0,
+    "czas_cyklu_min": 0.0,
+    "zuzycie_surowcow_kg": 0.0,
+    "wadliwe_jednostki": 0,
+    "odpady_procent": 0.0,
+    "zuzycie_energii_kwh": 0.0,
+    "wydajnosc_energetyczna": 0.0,
+    "aktualna_wydajnosc_h": 0.0
+}
+
+
+def resetuj_stan_produkcji():
+    stan_produkcji["liczba_jednostek"] = 0.0
+    stan_produkcji["czas_pracy_h"] = 0.0
+    stan_produkcji["wydajnosc_procentowa"] = 0.0
+    stan_produkcji["czas_cyklu_min"] = 0.0
+    stan_produkcji["zuzycie_surowcow_kg"] = 0.0
+    stan_produkcji["wadliwe_jednostki"] = 0
+    stan_produkcji["odpady_procent"] = 0.0
+    stan_produkcji["zuzycie_energii_kwh"] = 0.0
+    stan_produkcji["wydajnosc_energetyczna"] = 0.0
+    stan_produkcji["aktualna_wydajnosc_h"] = 0.0
+
+
+def czy_mozna_uruchomic_linie():
+    if drzwi_bezpieczenstwa.stan != "zamknięte":
+        return False, "Nie można uruchomić linii: drzwi bezpieczeństwa są otwarte."
+
+    if zasilanie_awaryjne.stan != "ON":
+        return False, "Nie można uruchomić linii: zasilanie awaryjne jest wyłączone."
+
+    return True, "Warunki startu spełnione."
+
+
+def aktualizuj_urzadzenia():
+    silnik.aktualizuj_temperature(linia_uruchomiona)
+    pompa_chlodnicza1.aktualizuj_temperature(linia_uruchomiona)
+    pompa_chlodnicza2.aktualizuj_temperature(linia_uruchomiona)
+
+    wentylator1.aktualizuj_obroty(linia_uruchomiona)
+    wentylator2.aktualizuj_obroty(linia_uruchomiona)
+    filtr_powietrza1.aktualizuj_obroty(linia_uruchomiona)
+    filtr_powietrza2.aktualizuj_obroty(linia_uruchomiona)
+
+
+def aktualizuj_stan_produkcji():
+    global ostatnia_aktualizacja_produkcji
+
+    if not linia_uruchomiona or czas_startu_linii is None:
+        return
+
+    teraz = time.time()
+
+    if ostatnia_aktualizacja_produkcji is None:
+        ostatnia_aktualizacja_produkcji = teraz
+        return
+
+    dt = teraz - ostatnia_aktualizacja_produkcji
+    ostatnia_aktualizacja_produkcji = teraz
+
+    # czas pracy
+    stan_produkcji["czas_pracy_h"] = (teraz - czas_startu_linii) / 3600.0
+
+    # aktualna wydajność chwilowa
+    odchylenie = random.uniform(-5.0, 5.0)
+    aktualna_wydajnosc = bazowa_wydajnosc_na_godzine + odchylenie
+
+    # wpływ warunków procesu
+    if silnik.temperatura > 80:
+        aktualna_wydajnosc -= 15
+
+    if pompa_chlodnicza1.temperatura > 60 or pompa_chlodnicza2.temperatura > 60:
+        aktualna_wydajnosc -= 10
+
+    if wentylator1.obroty_wentylatora < 1500 or wentylator2.obroty_wentylatora < 1500:
+        aktualna_wydajnosc -= 8
+
+    aktualna_wydajnosc = max(60.0, aktualna_wydajnosc)
+
+    stan_produkcji["aktualna_wydajnosc_h"] = aktualna_wydajnosc
+    stan_produkcji["wydajnosc_procentowa"] = round((aktualna_wydajnosc / bazowa_wydajnosc_na_godzine) * 100, 1)
+    stan_produkcji["czas_cyklu_min"] = round(60.0 / aktualna_wydajnosc, 2)
+
+    # przyrost produkcji
+    przyrost_jednostek = aktualna_wydajnosc * (dt / 3600.0)
+    stan_produkcji["liczba_jednostek"] += przyrost_jednostek
+
+    # zużycie surowców
+    stan_produkcji["zuzycie_surowcow_kg"] = round(stan_produkcji["liczba_jednostek"] * 0.5, 2)
+
+    # braki / jakość
+    procent_brakow = random.uniform(1.0, 3.0)
+    przewidywane_wadliwe = int(stan_produkcji["liczba_jednostek"] * procent_brakow / 100.0)
+    stan_produkcji["wadliwe_jednostki"] = przewidywane_wadliwe
+
+    if stan_produkcji["liczba_jednostek"] > 0:
+        stan_produkcji["odpady_procent"] = round(
+            (stan_produkcji["wadliwe_jednostki"] / stan_produkcji["liczba_jednostek"]) * 100.0, 2
+        )
+
+    # zużycie energii
+    moc_chwilowa_kw = random.uniform(18.0, 24.0)
+    if silnik.temperatura > 80:
+        moc_chwilowa_kw += 3.0
+
+    stan_produkcji["zuzycie_energii_kwh"] += moc_chwilowa_kw * (dt / 3600.0)
+    stan_produkcji["zuzycie_energii_kwh"] = round(stan_produkcji["zuzycie_energii_kwh"], 2)
+
+    if stan_produkcji["zuzycie_energii_kwh"] > 0:
+        stan_produkcji["wydajnosc_energetyczna"] = round(
+            stan_produkcji["liczba_jednostek"] / stan_produkcji["zuzycie_energii_kwh"], 2
+        )
+
+
+def pobierz_dane_produkcji():
+    return {
+        "stan_linii": "URUCHOMIONA" if linia_uruchomiona else "ZATRZYMANA",
+        "liczba_jednostek": int(stan_produkcji["liczba_jednostek"]),
+        "czas_pracy_h": round(stan_produkcji["czas_pracy_h"], 2),
+        "wydajnosc_procentowa": stan_produkcji["wydajnosc_procentowa"],
+        "czas_cyklu_min": stan_produkcji["czas_cyklu_min"],
+        "zuzycie_surowcow_kg": stan_produkcji["zuzycie_surowcow_kg"],
+        "wadliwe_jednostki": stan_produkcji["wadliwe_jednostki"],
+        "odpady_procent": stan_produkcji["odpady_procent"],
+        "zuzycie_energii_kwh": stan_produkcji["zuzycie_energii_kwh"],
+        "wydajnosc_energetyczna": stan_produkcji["wydajnosc_energetyczna"],
+        "aktualna_wydajnosc_h": round(stan_produkcji["aktualna_wydajnosc_h"], 2)
+    }
+
+
 def symulacja_awarii():
+    lista_awarii = []
 
-    pass
+    if linia_uruchomiona:
+        if silnik.temperatura > 80:
+            lista_awarii.append("Przekroczona temperatura silnika")
+
+        if pompa_chlodnicza1.temperatura > 60:
+            lista_awarii.append("Wysoka temperatura pompy chłodniczej 1")
+
+        if pompa_chlodnicza2.temperatura > 60:
+            lista_awarii.append("Wysoka temperatura pompy chłodniczej 2")
+
+        if wentylator1.obroty_wentylatora < 1500:
+            lista_awarii.append("Zbyt niskie obroty wentylatora 1")
+
+        if wentylator2.obroty_wentylatora < 1500:
+            lista_awarii.append("Zbyt niskie obroty wentylatora 2")
+
+        if uzycie_CPU() > 85:
+            lista_awarii.append("Wysokie obciążenie CPU komputera")
+
+    if not lista_awarii:
+        lista_awarii.append("Brak aktywnych awarii")
+
+    return lista_awarii
 
 
+# =========================
+# KONTA
+# =========================
 
 uzytkownicy = {
     "admin": "admin"
 }
 
+
+# =========================
+# PANEL DYSPOZYTORSKI
+# =========================
+
+class PanelDyspozytorski:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Panel dyspozytorski")
+        self.root.geometry("1200x700")
+        self.root.configure(bg="lightgray")
+
+        self.aktualny_widok = None
+
+        self.main_frame = tk.Frame(self.root, bg="lightgray")
+        self.main_frame.pack(fill="both", expand=True)
+
+        self.menu_frame = tk.Frame(self.main_frame, bg="#d9d9d9", width=270, bd=2, relief="solid")
+        self.menu_frame.pack(side="left", fill="y")
+        self.menu_frame.pack_propagate(False)
+
+        self.content_frame = tk.Frame(self.main_frame, bg="white", bd=2, relief="solid")
+        self.content_frame.pack(side="right", fill="both", expand=True)
+
+        tk.Button(
+            self.menu_frame, text="Stan urządzeń", font=("Arial", 14), height=2,
+            command=self.pokaz_stan_urzadzen
+        ).pack(fill="x", pady=2)
+
+        tk.Button(
+            self.menu_frame, text="Stan produkcji", font=("Arial", 14), height=2,
+            command=self.pokaz_stan_produkcji
+        ).pack(fill="x", pady=2)
+
+        tk.Button(
+            self.menu_frame, text="Awarie", font=("Arial", 14), height=2,
+            command=self.pokaz_awarie
+        ).pack(fill="x", pady=2)
+
+        tk.Button(
+            self.menu_frame, text="Stan komputera", font=("Arial", 14), height=2,
+            command=self.pokaz_stan_komputera
+        ).pack(fill="x", pady=2)
+
+        self.btn_linia = tk.Button(
+            self.menu_frame, text="Uruchom linię produkcyjną", font=("Arial", 14),
+            height=2, bg="#b6e3b6", command=self.przelacz_linie
+        )
+        self.btn_linia.pack(fill="x", pady=(20, 2))
+
+        tk.Button(
+            self.menu_frame, text="Wyloguj", font=("Arial", 14), height=2,
+            bg="#f0b2b2", command=self.wyloguj
+        ).pack(fill="x", pady=2)
+
+        self.status_linii_label = tk.Label(
+            self.menu_frame,
+            text="Status linii: ZATRZYMANA",
+            font=("Arial", 12, "bold"),
+            bg="#d9d9d9",
+            fg="red"
+        )
+        self.status_linii_label.pack(pady=20)
+
+        self.pokaz_stan_urzadzen()
+        self.petla_glowna_aktualizacji()
+
+    def wyczysc_content(self):
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
+
+    def petla_glowna_aktualizacji(self):
+        aktualizuj_urzadzenia()
+        aktualizuj_stan_produkcji()
+
+        if self.aktualny_widok == "urzadzenia":
+            self.odswiez_stan_urzadzen()
+        elif self.aktualny_widok == "produkcja":
+            self.odswiez_stan_produkcji()
+        elif self.aktualny_widok == "awarie":
+            self.odswiez_awarie()
+        elif self.aktualny_widok == "komputer":
+            self.odswiez_stan_komputera()
+
+        self.root.after(1000, self.petla_glowna_aktualizacji)
+
+    def przelacz_linie(self):
+        global linia_uruchomiona, czas_startu_linii, ostatnia_aktualizacja_produkcji
+
+        if not linia_uruchomiona:
+            mozna_uruchomic, komunikat = czy_mozna_uruchomic_linie()
+
+            if not mozna_uruchomic:
+                messagebox.showwarning("Brak możliwości uruchomienia", komunikat)
+                return
+
+            linia_uruchomiona = True
+            czas_startu_linii = time.time()
+            ostatnia_aktualizacja_produkcji = time.time()
+            resetuj_stan_produkcji()
+
+            self.btn_linia.config(text="Zatrzymaj linię produkcyjną", bg="#f3d48b")
+            self.status_linii_label.config(text="Status linii: URUCHOMIONA", fg="green")
+            messagebox.showinfo("Linia produkcyjna", "Linia produkcyjna została uruchomiona.")
+        else:
+            linia_uruchomiona = False
+            czas_startu_linii = None
+            ostatnia_aktualizacja_produkcji = None
+
+            self.btn_linia.config(text="Uruchom linię produkcyjną", bg="#b6e3b6")
+            self.status_linii_label.config(text="Status linii: ZATRZYMANA", fg="red")
+            messagebox.showinfo("Linia produkcyjna", "Linia produkcyjna została zatrzymana.")
+
+    def wyloguj(self):
+        odpowiedz = messagebox.askyesno("Wylogowanie", "Czy na pewno chcesz się wylogować?")
+        if odpowiedz:
+            self.root.destroy()
+            pokaz_okno_logowania()
+
+    def pokaz_stan_urzadzen(self):
+        self.aktualny_widok = "urzadzenia"
+        self.wyczysc_content()
+
+        tk.Label(
+            self.content_frame, text="Stan urządzeń",
+            font=("Arial", 22, "bold"), bg="white"
+        ).pack(pady=20)
+
+        self.urzadzenia_labels = []
+        for _ in range(11):
+            lbl = tk.Label(self.content_frame, font=("Arial", 13), bg="white")
+            lbl.pack(anchor="w", padx=20, pady=4)
+            self.urzadzenia_labels.append(lbl)
+
+        self.odswiez_stan_urzadzen()
+
+    def odswiez_stan_urzadzen(self):
+        if self.aktualny_widok != "urzadzenia":
+            return
+        if not hasattr(self, "urzadzenia_labels"):
+            return
+
+        dane = [
+            f"Silnik - stan: {silnik.stan}, temperatura: {silnik.monitorowanie_temperatury():.2f} °C",
+            f"Pompa chłodnicza 1 - stan: {pompa_chlodnicza1.stan}, temperatura: {pompa_chlodnicza1.monitorowanie_temperatury():.2f} °C",
+            f"Pompa chłodnicza 2 - stan: {pompa_chlodnicza2.stan}, temperatura: {pompa_chlodnicza2.monitorowanie_temperatury():.2f} °C",
+            f"Wentylator 1 - stan: {wentylator1.stan}, obroty: {wentylator1.obroty_wentylatora:.2f} RPM",
+            f"Wentylator 2 - stan: {wentylator2.stan}, obroty: {wentylator2.obroty_wentylatora:.2f} RPM",
+            f"Filtr powietrza 1 - wydajność: {filtr_powietrza1.wydajnosc_wentylatora():.2f} m³/h",
+            f"Filtr powietrza 2 - wydajność: {filtr_powietrza2.wydajnosc_wentylatora():.2f} m³/h",
+            f"Zasilanie awaryjne - stan: {zasilanie_awaryjne.stan}",
+            f"Drzwi bezpieczeństwa - stan: {drzwi_bezpieczenstwa.stan}",
+            f"Czujnik obecności operatora - stan: {czujnik_obecnosci.stan}",
+            f"Napęd pneumatyczny - stan: {naped_pneumatyczny.stan}",
+        ]
+
+        for lbl, tekst in zip(self.urzadzenia_labels, dane):
+            lbl.config(text=tekst)
+
+    def pokaz_stan_produkcji(self):
+        self.aktualny_widok = "produkcja"
+        self.wyczysc_content()
+
+        tk.Label(
+            self.content_frame, text="Stan produkcji",
+            font=("Arial", 22, "bold"), bg="white"
+        ).pack(pady=20)
+
+        self.produkcja_labels = {}
+        pola = [
+            "Stan linii",
+            "Aktualna wydajność chwilowa",
+            "Liczba jednostek",
+            "Czas pracy linii",
+            "Wydajność procentowa",
+            "Czas cyklu",
+            "Zużycie surowców",
+            "Wadliwe jednostki",
+            "Odpady",
+            "Zużycie energii",
+            "Wydajność energetyczna maszyn"
+        ]
+
+        for nazwa in pola:
+            lbl = tk.Label(self.content_frame, font=("Arial", 13), bg="white")
+            lbl.pack(anchor="w", padx=20, pady=4)
+            self.produkcja_labels[nazwa] = lbl
+
+        self.odswiez_stan_produkcji()
+
+    def odswiez_stan_produkcji(self):
+        if self.aktualny_widok != "produkcja":
+            return
+        if not hasattr(self, "produkcja_labels"):
+            return
+
+        dane = pobierz_dane_produkcji()
+
+        self.produkcja_labels["Stan linii"].config(text=f"Stan linii: {dane['stan_linii']}")
+        self.produkcja_labels["Aktualna wydajność chwilowa"].config(
+            text=f"Aktualna wydajność chwilowa: {dane['aktualna_wydajnosc_h']} szt./h"
+        )
+        self.produkcja_labels["Liczba jednostek"].config(
+            text=f"Liczba jednostek: {dane['liczba_jednostek']}"
+        )
+        self.produkcja_labels["Czas pracy linii"].config(
+            text=f"Czas pracy linii: {dane['czas_pracy_h']} h"
+        )
+        self.produkcja_labels["Wydajność procentowa"].config(
+            text=f"Wydajność procentowa: {dane['wydajnosc_procentowa']} %"
+        )
+        self.produkcja_labels["Czas cyklu"].config(
+            text=f"Czas cyklu: {dane['czas_cyklu_min']} min"
+        )
+        self.produkcja_labels["Zużycie surowców"].config(
+            text=f"Zużycie surowców: {dane['zuzycie_surowcow_kg']} kg"
+        )
+        self.produkcja_labels["Wadliwe jednostki"].config(
+            text=f"Wadliwe jednostki: {dane['wadliwe_jednostki']}"
+        )
+        self.produkcja_labels["Odpady"].config(
+            text=f"Odpady: {dane['odpady_procent']} %"
+        )
+        self.produkcja_labels["Zużycie energii"].config(
+            text=f"Zużycie energii: {dane['zuzycie_energii_kwh']} kWh"
+        )
+        self.produkcja_labels["Wydajność energetyczna maszyn"].config(
+            text=f"Wydajność energetyczna maszyn: {dane['wydajnosc_energetyczna']}"
+        )
+
+    def pokaz_awarie(self):
+        self.aktualny_widok = "awarie"
+        self.wyczysc_content()
+
+        tk.Label(
+            self.content_frame, text="Awarie",
+            font=("Arial", 22, "bold"), bg="white", fg="red"
+        ).pack(pady=20)
+
+        self.awarie_frame = tk.Frame(self.content_frame, bg="white")
+        self.awarie_frame.pack(fill="both", expand=True)
+
+        self.odswiez_awarie()
+
+    def odswiez_awarie(self):
+        if self.aktualny_widok != "awarie":
+            return
+        if not hasattr(self, "awarie_frame"):
+            return
+
+        for widget in self.awarie_frame.winfo_children():
+            widget.destroy()
+
+        awarie = symulacja_awarii()
+
+        for tekst in awarie:
+            kolor = "green" if tekst == "Brak aktywnych awarii" else "red"
+            tk.Label(
+                self.awarie_frame, text=tekst, font=("Arial", 13),
+                bg="white", fg=kolor
+            ).pack(anchor="w", padx=20, pady=4)
+
+    def pokaz_stan_komputera(self):
+        self.aktualny_widok = "komputer"
+        self.wyczysc_content()
+
+        tk.Label(
+            self.content_frame, text="Stan komputera",
+            font=("Arial", 22, "bold"), bg="white"
+        ).pack(pady=20)
+
+        self.label_cpu = tk.Label(self.content_frame, font=("Arial", 13), bg="white")
+        self.label_cpu.pack(anchor="w", padx=20, pady=4)
+
+        self.label_ram = tk.Label(self.content_frame, font=("Arial", 13), bg="white")
+        self.label_ram.pack(anchor="w", padx=20, pady=4)
+
+        self.label_cpu_speed = tk.Label(self.content_frame, font=("Arial", 13), bg="white")
+        self.label_cpu_speed.pack(anchor="w", padx=20, pady=4)
+
+        self.odswiez_stan_komputera()
+
+    def odswiez_stan_komputera(self):
+        if self.aktualny_widok != "komputer":
+            return
+        if not hasattr(self, "label_cpu") or not self.label_cpu.winfo_exists():
+            return
+
+        cpu = uzycie_CPU()
+        ram = wykorzystanie_RAM()
+        cpu_speed = predkosc_CPU()
+
+        self.label_cpu.config(text=f"Użycie CPU: {cpu:.2f} %")
+        self.label_ram.config(text=f"Użycie RAM: {ram:.2f} %")
+        self.label_cpu_speed.config(text=f"Prędkość CPU: {cpu_speed:.2f} MHz")
+
+
+# =========================
+# LOGOWANIE
+# =========================
+
 def otworz_panel_dyspozytorski():
     panel = tk.Tk()
-    panel.title("Panel dyspozytorski")
-    panel.geometry("900x600")
-    panel.config(bg="white")
-
-    label_powitalny = tk.Label(
-        panel,
-        text="Witaj w panelu dyspozytorskim",
-        font=("Arial", 18, "bold"),
-        bg="white"
-    )
-    label_powitalny.pack(pady=20)
-
+    PanelDyspozytorski(panel)
     panel.mainloop()
 
-def sprawdz_logowanie():
-    login = entry_login.get()
-    haslo = entry_haslo.get()
 
-    if login in uzytkownicy and uzytkownicy[login] == haslo:
-        messagebox.showinfo("Sukces", "Zalogowano pomyślnie!")
-        okno_logowania.destroy()
-        otworz_panel_dyspozytorski()
-    else:
-        messagebox.showerror("Błąd", "Niepoprawny login lub hasło!")
-        entry_haslo.delete(0, tk.END)
+def pokaz_okno_logowania():
+    okno_logowania = tk.Tk()
+    okno_logowania.title("Logowanie")
+    okno_logowania.geometry("600x400")
+    okno_logowania.config(bg="lightblue")
 
-def utworz_konto():
-    def zapisz_konto():
-        login = entry_login_new.get()
-        haslo = entry_haslo_new.get()
-        confirm_haslo = entry_confirm_haslo.get()
-        admin_login = entry_admin_login.get()
-        admin_haslo = entry_admin_haslo.get()
+    def sprawdz_logowanie():
+        login = entry_login.get()
+        haslo = entry_haslo.get()
 
-        if admin_login != "admin" or admin_haslo != "admin":
-            messagebox.showerror("Błąd", "Niepoprawny login lub hasło administratora!")
-            return
+        if login in uzytkownicy and uzytkownicy[login] == haslo:
+            messagebox.showinfo("Sukces", "Zalogowano pomyślnie!")
+            okno_logowania.destroy()
+            otworz_panel_dyspozytorski()
+        else:
+            messagebox.showerror("Błąd", "Niepoprawny login lub hasło!")
+            entry_haslo.delete(0, tk.END)
 
-        if login in uzytkownicy:
-            messagebox.showerror("Błąd", "Taki login już istnieje!")
-            return
+    def utworz_konto():
+        def zapisz_konto():
+            login = entry_login_new.get().strip()
+            haslo = entry_haslo_new.get().strip()
+            confirm_haslo = entry_confirm_haslo.get().strip()
+            admin_login = entry_admin_login.get().strip()
+            admin_haslo = entry_admin_haslo.get().strip()
 
-        if haslo != confirm_haslo:
-            messagebox.showerror("Błąd", "Hasła się nie zgadzają!")
-            return
+            if admin_login != "admin" or admin_haslo != "admin":
+                messagebox.showerror("Błąd", "Niepoprawny login lub hasło administratora!")
+                return
 
-        uzytkownicy[login] = haslo
-        messagebox.showinfo("Sukces", f"Konto zostało pomyślnie utworzone!")
-        rejestracja_window.destroy()
+            if not login or not haslo:
+                messagebox.showerror("Błąd", "Login i hasło nie mogą być puste!")
+                return
 
-    rejestracja_window = tk.Toplevel(okno_logowania)
-    rejestracja_window.title("Rejestracja")
-    rejestracja_window.geometry("400x400")
+            if login in uzytkownicy:
+                messagebox.showerror("Błąd", "Taki login już istnieje!")
+                return
 
-    tk.Label(rejestracja_window, text="Nowy login:").pack(pady=5)
-    entry_login_new = tk.Entry(rejestracja_window)
-    entry_login_new.pack(pady=5)
+            if haslo != confirm_haslo:
+                messagebox.showerror("Błąd", "Hasła się nie zgadzają!")
+                return
 
-    tk.Label(rejestracja_window, text="Nowe hasło:").pack(pady=5)
-    entry_haslo_new = tk.Entry(rejestracja_window, show="*")
-    entry_haslo_new.pack(pady=5)
+            uzytkownicy[login] = haslo
+            messagebox.showinfo("Sukces", "Konto zostało pomyślnie utworzone!")
+            rejestracja_window.destroy()
 
-    tk.Label(rejestracja_window, text="Potwierdź hasło:").pack(pady=5)
-    entry_confirm_haslo = tk.Entry(rejestracja_window, show="*")
-    entry_confirm_haslo.pack(pady=5)
+        rejestracja_window = tk.Toplevel(okno_logowania)
+        rejestracja_window.title("Rejestracja")
+        rejestracja_window.geometry("400x400")
 
-    tk.Label(rejestracja_window, text="Login administratora:").pack(pady=5)
-    entry_admin_login = tk.Entry(rejestracja_window)
-    entry_admin_login.pack(pady=5)
+        tk.Label(rejestracja_window, text="Nowy login:").pack(pady=5)
+        entry_login_new = tk.Entry(rejestracja_window)
+        entry_login_new.pack(pady=5)
 
-    tk.Label(rejestracja_window, text="Hasło administratora:").pack(pady=5)
-    entry_admin_haslo = tk.Entry(rejestracja_window, show="*")
-    entry_admin_haslo.pack(pady=5)
+        tk.Label(rejestracja_window, text="Nowe hasło:").pack(pady=5)
+        entry_haslo_new = tk.Entry(rejestracja_window, show="*")
+        entry_haslo_new.pack(pady=5)
 
-    tk.Button(rejestracja_window, text="Zapisz konto", command=zapisz_konto).pack(pady=15)
-    rejestracja_window.bind('<Return>', lambda event: zapisz_konto())
+        tk.Label(rejestracja_window, text="Potwierdź hasło:").pack(pady=5)
+        entry_confirm_haslo = tk.Entry(rejestracja_window, show="*")
+        entry_confirm_haslo.pack(pady=5)
 
+        tk.Label(rejestracja_window, text="Login administratora:").pack(pady=5)
+        entry_admin_login = tk.Entry(rejestracja_window)
+        entry_admin_login.pack(pady=5)
 
+        tk.Label(rejestracja_window, text="Hasło administratora:").pack(pady=5)
+        entry_admin_haslo = tk.Entry(rejestracja_window, show="*")
+        entry_admin_haslo.pack(pady=5)
 
-okno_logowania = tk.Tk()
-okno_logowania.title("Logowanie")
-okno_logowania.geometry("600x400")
-okno_logowania.config(bg="lightblue")
+        tk.Button(rejestracja_window, text="Zapisz konto", command=zapisz_konto).pack(pady=15)
 
-tk.Label(okno_logowania, text="Login:", bg="lightblue").pack(pady=10)
-entry_login = tk.Entry(okno_logowania)
-entry_login.pack(pady=5)
+        rejestracja_window.bind('<Return>', lambda event: zapisz_konto())
 
-tk.Label(okno_logowania, text="Hasło:", bg="lightblue").pack(pady=10)
-entry_haslo = tk.Entry(okno_logowania, show="*")
-entry_haslo.pack(pady=5)
+    tk.Label(okno_logowania, text="Login:", bg="lightblue").pack(pady=10)
+    entry_login = tk.Entry(okno_logowania)
+    entry_login.pack(pady=5)
+    entry_login.focus()
 
-tk.Button(okno_logowania, text="Zaloguj", command=sprawdz_logowanie).pack(pady=20)
-tk.Button(okno_logowania, text="Utwórz nowe konto", command=utworz_konto).pack(pady=10)
+    tk.Label(okno_logowania, text="Hasło:", bg="lightblue").pack(pady=10)
+    entry_haslo = tk.Entry(okno_logowania, show="*")
+    entry_haslo.pack(pady=5)
 
-okno_logowania.bind('<Return>', lambda event: sprawdz_logowanie())
-okno_logowania.mainloop()
+    tk.Button(okno_logowania, text="Zaloguj", command=sprawdz_logowanie).pack(pady=20)
+    tk.Button(okno_logowania, text="Utwórz nowe konto", command=utworz_konto).pack(pady=10)
 
-
-uzycie_CPU()
-wykorzystanie_RAM() 
-predkosc_CPU()
-
-#sprawdzanie_obecnosci_operatora()
-
+    okno_logowania.bind('<Return>', lambda event: sprawdz_logowanie())
+    okno_logowania.mainloop()
 
 
+# =========================
+# START PROGRAMU
+# =========================
+
+pokaz_okno_logowania()
