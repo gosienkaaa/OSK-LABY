@@ -146,121 +146,121 @@ def stan_zasilania_procesow_produkcji():
 
 #AWARIE I PRZEKROCZENIA PARAMETROW
 def symulacja_awarii():
+
     pass
 
 
-# Funkcja do sprawdzania danych logowania
-def sprawdz_logowanie():
-    login = entry_login.get()  # Pobierz login
-    haslo = entry_haslo.get()  # Pobierz hasło
 
-    # Sprawdź, czy login i hasło są poprawne (przykładowe dane)
-    if login == "admin" and haslo == "admin":
+uzytkownicy = {
+    "admin": "admin"
+}
+
+def otworz_panel_dyspozytorski():
+    panel = tk.Tk()
+    panel.title("Panel dyspozytorski")
+    panel.geometry("900x600")
+    panel.config(bg="white")
+
+    label_powitalny = tk.Label(
+        panel,
+        text="Witaj w panelu dyspozytorskim",
+        font=("Arial", 18, "bold"),
+        bg="white"
+    )
+    label_powitalny.pack(pady=20)
+
+    panel.mainloop()
+
+def sprawdz_logowanie():
+    login = entry_login.get()
+    haslo = entry_haslo.get()
+
+    if login in uzytkownicy and uzytkownicy[login] == haslo:
         messagebox.showinfo("Sukces", "Zalogowano pomyślnie!")
-        okno_logowania.destroy()  # Zamknięcie okna logowania
-        # Tutaj możesz uruchomić główne okno aplikacji, np. otwórz główne okno
-        # otworz_glowne_okno()
+        okno_logowania.destroy()
+        otworz_panel_dyspozytorski()
     else:
         messagebox.showerror("Błąd", "Niepoprawny login lub hasło!")
+        entry_haslo.delete(0, tk.END)
 
-# Funkcja do utworzenia nowego konta
 def utworz_konto():
     def zapisz_konto():
         login = entry_login_new.get()
         haslo = entry_haslo_new.get()
         confirm_haslo = entry_confirm_haslo.get()
-        admin_login = entry_admin_login.get()  # Wymaga loginu administratora
-        admin_haslo = entry_admin_haslo.get()  # Wymaga hasła administratora
+        admin_login = entry_admin_login.get()
+        admin_haslo = entry_admin_haslo.get()
 
-        # Sprawdzanie, czy dane administratora są poprawne
         if admin_login != "admin" or admin_haslo != "admin":
             messagebox.showerror("Błąd", "Niepoprawny login lub hasło administratora!")
             return
-        
-        # Sprawdzanie, czy hasła są identyczne
+
+        if login in uzytkownicy:
+            messagebox.showerror("Błąd", "Taki login już istnieje!")
+            return
+
         if haslo != confirm_haslo:
             messagebox.showerror("Błąd", "Hasła się nie zgadzają!")
             return
-        
-        # Zapisz dane konta do bazy danych lub pliku (w tym przykładzie po prostu wyświetlamy je w konsoli)
-        print(f"Nowe konto: Login: {login}, Hasło: {haslo}")
-        messagebox.showinfo("Sukces", "Konto zostało utworzone!")
-        rejestracja_window.destroy()  # Zamknięcie okna rejestracji
 
-    # Okno rejestracji
-    rejestracja_window = tk.Toplevel()
+        uzytkownicy[login] = haslo
+        messagebox.showinfo("Sukces", f"Konto zostało pomyślnie utworzone!")
+        rejestracja_window.destroy()
+
+    rejestracja_window = tk.Toplevel(okno_logowania)
     rejestracja_window.title("Rejestracja")
-    rejestracja_window.geometry("400x500")
-    
-    # Etykieta i pole do loginu
-    label_login_new = tk.Label(rejestracja_window, text="Nowy login:")
-    label_login_new.pack(pady=10)
+    rejestracja_window.geometry("400x400")
+
+    tk.Label(rejestracja_window, text="Nowy login:").pack(pady=5)
     entry_login_new = tk.Entry(rejestracja_window)
     entry_login_new.pack(pady=5)
-    
-    # Etykieta i pole do hasła
-    label_haslo_new = tk.Label(rejestracja_window, text="Nowe hasło:")
-    label_haslo_new.pack(pady=10)
+
+    tk.Label(rejestracja_window, text="Nowe hasło:").pack(pady=5)
     entry_haslo_new = tk.Entry(rejestracja_window, show="*")
     entry_haslo_new.pack(pady=5)
-    
-    # Etykieta i pole do potwierdzenia hasła
-    label_confirm_haslo = tk.Label(rejestracja_window, text="Potwierdź hasło:")
-    label_confirm_haslo.pack(pady=10)
+
+    tk.Label(rejestracja_window, text="Potwierdź hasło:").pack(pady=5)
     entry_confirm_haslo = tk.Entry(rejestracja_window, show="*")
     entry_confirm_haslo.pack(pady=5)
 
-    # Etykieta i pole do loginu administratora
-    label_admin_login = tk.Label(rejestracja_window, text="Login administratora:")
-    label_admin_login.pack(pady=10)
+    tk.Label(rejestracja_window, text="Login administratora:").pack(pady=5)
     entry_admin_login = tk.Entry(rejestracja_window)
     entry_admin_login.pack(pady=5)
 
-    # Etykieta i pole do hasła administratora
-    label_admin_haslo = tk.Label(rejestracja_window, text="Hasło administratora:")
-    label_admin_haslo.pack(pady=10)
+    tk.Label(rejestracja_window, text="Hasło administratora:").pack(pady=5)
     entry_admin_haslo = tk.Entry(rejestracja_window, show="*")
     entry_admin_haslo.pack(pady=5)
-    
-    # Przycisk do zapisu nowego konta
-    button_save_account = tk.Button(rejestracja_window, text="Zapisz konto", command=zapisz_konto)
-    button_save_account.pack(pady=20)
 
-# Tworzenie okna logowania
+    tk.Button(rejestracja_window, text="Zapisz konto", command=zapisz_konto).pack(pady=15)
+    rejestracja_window.bind('<Return>', lambda event: zapisz_konto())
+
+
+
 okno_logowania = tk.Tk()
 okno_logowania.title("Logowanie")
 okno_logowania.geometry("600x400")
 okno_logowania.config(bg="lightblue")
 
-# Etykiety (labels) i pola tekstowe (entry)
-label_login = tk.Label(okno_logowania, text="Login:", bg="lightblue")
-label_login.pack(pady=10)
-
+tk.Label(okno_logowania, text="Login:", bg="lightblue").pack(pady=10)
 entry_login = tk.Entry(okno_logowania)
 entry_login.pack(pady=5)
 
-label_haslo = tk.Label(okno_logowania, text="Hasło:", bg="lightblue")
-label_haslo.pack(pady=10)
-
-entry_haslo = tk.Entry(okno_logowania, show="*")  # Używamy "show='*'" do ukrycia hasła
+tk.Label(okno_logowania, text="Hasło:", bg="lightblue").pack(pady=10)
+entry_haslo = tk.Entry(okno_logowania, show="*")
 entry_haslo.pack(pady=5)
 
-# Przycisk logowania
-button_login = tk.Button(okno_logowania, text="Zaloguj", command=sprawdz_logowanie)
-button_login.pack(pady=20)
+tk.Button(okno_logowania, text="Zaloguj", command=sprawdz_logowanie).pack(pady=20)
+tk.Button(okno_logowania, text="Utwórz nowe konto", command=utworz_konto).pack(pady=10)
 
-# Przycisk do utworzenia nowego konta
-button_register = tk.Button(okno_logowania, text="Utwórz nowe konto", command=utworz_konto)
-button_register.pack(pady=10)
-
-# Uruchomienie głównej pętli GUI
+okno_logowania.bind('<Return>', lambda event: sprawdz_logowanie())
 okno_logowania.mainloop()
+
 
 uzycie_CPU()
 wykorzystanie_RAM() 
 predkosc_CPU()
 
-sprawdzanie_obecnosci_operatora()
+#sprawdzanie_obecnosci_operatora()
 
 
 
