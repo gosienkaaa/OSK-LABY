@@ -1372,39 +1372,73 @@ class PanelDyspozytorski:
                 font=("Arial", 11), bg="white"
             ).pack(anchor="w", pady=1)
 
+
     def pokaz_stan_komputera(self):
         self.aktualny_widok = "komputer"
         self.wyczysc_content()
 
         tk.Label(
-            self.content_frame, text="Stan komputera",
-            font=("Arial", 22, "bold"), bg="white"
+            self.content_frame,
+            text="Stan komputera",
+            font=("Arial", 22, "bold"),
+            bg="white"
         ).pack(pady=20)
 
-        self.label_cpu = tk.Label(self.content_frame, font=("Arial", 13), bg="white")
-        self.label_cpu.pack(anchor="w", padx=20, pady=4)
+        main = tk.Frame(self.content_frame, bg="white")
+        main.pack(padx=20, pady=20, anchor="w")
 
-        self.label_ram = tk.Label(self.content_frame, font=("Arial", 13), bg="white")
-        self.label_ram.pack(anchor="w", padx=20, pady=4)
+        # ======================
+        # CPU
+        # ======================
+        tk.Label(main, text="Użycie CPU", font=("Arial", 12, "bold"), bg="white").pack(anchor="w")
 
-        self.label_cpu_speed = tk.Label(self.content_frame, font=("Arial", 13), bg="white")
-        self.label_cpu_speed.pack(anchor="w", padx=20, pady=4)
+        self.cpu_bar = ttk.Progressbar(main, length=350, maximum=100)
+        self.cpu_bar.pack(pady=5)
+
+        self.label_cpu = tk.Label(main, font=("Arial", 11), bg="white")
+        self.label_cpu.pack(anchor="w", pady=(0,15))
+
+        # ======================
+        # RAM
+        # ======================
+        tk.Label(main, text="Użycie RAM", font=("Arial", 12, "bold"), bg="white").pack(anchor="w")
+
+        self.ram_bar = ttk.Progressbar(main, length=350, maximum=100)
+        self.ram_bar.pack(pady=5)
+
+        self.label_ram = tk.Label(main, font=("Arial", 11), bg="white")
+        self.label_ram.pack(anchor="w", pady=(0,15))
+
+        # ======================
+        # CPU SPEED
+        # ======================
+        tk.Label(main, text="Prędkość CPU", font=("Arial", 12, "bold"), bg="white").pack(anchor="w")
+
+        self.label_cpu_speed = tk.Label(
+            main,
+            font=("Arial", 18, "bold"),
+            fg="#0b5394",
+            bg="white"
+        )
+        self.label_cpu_speed.pack(anchor="w", pady=5)
 
         self.odswiez_stan_komputera()
 
+
     def odswiez_stan_komputera(self):
         if self.aktualny_widok != "komputer":
-            return
-        if not hasattr(self, "label_cpu") or not self.label_cpu.winfo_exists():
             return
 
         cpu = uzycie_CPU()
         ram = wykorzystanie_RAM()
         cpu_speed = predkosc_CPU()
 
-        self.label_cpu.config(text=f"Użycie CPU: {cpu:.2f} %")
-        self.label_ram.config(text=f"Użycie RAM: {ram:.2f} %")
-        self.label_cpu_speed.config(text=f"Prędkość CPU: {cpu_speed:.2f} MHz")
+        self.cpu_bar["value"] = cpu
+        self.ram_bar["value"] = ram
+
+        self.label_cpu.config(text=f"{cpu:.1f} %")
+        self.label_ram.config(text=f"{ram:.1f} %")
+        self.label_cpu_speed.config(text=f"{cpu_speed:.0f} MHz")
 
     def wyswietl_sprawdzenie_obecnosci(self):
         if self.okno_potwierdzenia is not None and self.okno_potwierdzenia.winfo_exists():
