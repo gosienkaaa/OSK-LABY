@@ -1178,70 +1178,138 @@ class PanelDyspozytorski:
         self.wyczysc_content()
 
         tk.Label(
-            self.content_frame, text="Stan produkcji",
-            font=("Arial", 22, "bold"), bg="white"
-        ).pack(pady=20)
+            self.content_frame,
+            text="Stan produkcji",
+            font=("Arial", 22, "bold"),
+            bg="white"
+        ).pack(pady=10)
 
-        self.produkcja_labels = {}
-        pola = [
+        self.produkcja_main = tk.Frame(self.content_frame, bg="white")
+        self.produkcja_main.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # =========================
+        # 1. DUŻY KAFEL STATUSU LINII
+        # =========================
+        self.kafelek_stan_linii = KafelekKPI(
+            self.produkcja_main,
             "Stan linii",
-            "Aktualna wydajność chwilowa",
-            "Liczba jednostek",
-            "Czas pracy linii",
-            "Wydajność procentowa",
-            "Czas cyklu",
-            "Zużycie surowców",
-            "Wadliwe jednostki",
-            "Odpady",
-            "Zużycie energii",
-            "Wydajność energetyczna maszyn"
-        ]
+            "ZATRZYMANA",
+            szer=320,
+            wys=120
+        )
+        self.kafelek_stan_linii.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky="w")
 
-        for nazwa in pola:
-            lbl = tk.Label(self.content_frame, font=("Arial", 13), bg="white")
-            lbl.pack(anchor="w", padx=20, pady=4)
-            self.produkcja_labels[nazwa] = lbl
+        # =========================
+        # 2. KAFELKI KPI
+        # =========================
+        self.kpi_frame = tk.Frame(self.produkcja_main, bg="white")
+        self.kpi_frame.grid(row=1, column=0, columnspan=2, sticky="w")
+
+        self.kpi_wydajnosc = KafelekKPI(self.kpi_frame, "Aktualna wydajność", "0 szt./h")
+        self.kpi_wydajnosc.grid(row=0, column=0, padx=8, pady=8)
+
+        self.kpi_liczba = KafelekKPI(self.kpi_frame, "Liczba jednostek", "0")
+        self.kpi_liczba.grid(row=0, column=1, padx=8, pady=8)
+
+        self.kpi_czas = KafelekKPI(self.kpi_frame, "Czas pracy", "0.0 h")
+        self.kpi_czas.grid(row=0, column=2, padx=8, pady=8)
+
+        self.kpi_energia = KafelekKPI(self.kpi_frame, "Zużycie energii", "0.0 kWh")
+        self.kpi_energia.grid(row=0, column=3, padx=8, pady=8)
+
+        # =========================
+        # 3. PASKI POSTĘPU
+        # =========================
+        self.paski_frame = tk.Frame(self.produkcja_main, bg="white")
+        self.paski_frame.grid(row=2, column=0, columnspan=2, sticky="w", pady=(10, 0))
+
+        self.pasek_wydajnosc = PasekParametru(
+            self.paski_frame,
+            "Wydajność procentowa",
+            max_val=150,
+            jednostka="%"
+        )
+        self.pasek_wydajnosc.grid(row=0, column=0, padx=10, pady=8, sticky="w")
+
+        self.pasek_odpady = PasekParametru(
+            self.paski_frame,
+            "Odpady",
+            max_val=100,
+            jednostka="%"
+        )
+        self.pasek_odpady.grid(row=1, column=0, padx=10, pady=8, sticky="w")
+
+        # =========================
+        # 4. SEKCJA SZCZEGÓŁÓW
+        # =========================
+        szczegoly_box = tk.LabelFrame(
+            self.produkcja_main,
+            text="Szczegóły",
+            font=("Arial", 12, "bold"),
+            bg="white",
+            padx=10,
+            pady=10
+        )
+        szczegoly_box.grid(row=3, column=0, columnspan=2, sticky="w", padx=10, pady=15)
+
+        self.label_czas_cyklu = tk.Label(szczegoly_box, font=("Arial", 12), bg="white")
+        self.label_czas_cyklu.pack(anchor="w", pady=2)
+
+        self.label_surowce = tk.Label(szczegoly_box, font=("Arial", 12), bg="white")
+        self.label_surowce.pack(anchor="w", pady=2)
+
+        self.label_wadliwe = tk.Label(szczegoly_box, font=("Arial", 12), bg="white")
+        self.label_wadliwe.pack(anchor="w", pady=2)
+
+        self.label_wydajnosc_energetyczna = tk.Label(szczegoly_box, font=("Arial", 12), bg="white")
+        self.label_wydajnosc_energetyczna.pack(anchor="w", pady=2)
 
         self.odswiez_stan_produkcji()
 
+    
     def odswiez_stan_produkcji(self):
         if self.aktualny_widok != "produkcja":
-            return
-        if not hasattr(self, "produkcja_labels"):
             return
 
         dane = pobierz_dane_produkcji()
 
-        self.produkcja_labels["Stan linii"].config(text=f"Stan linii: {dane['stan_linii']}")
-        self.produkcja_labels["Aktualna wydajność chwilowa"].config(
-            text=f"Aktualna wydajność chwilowa: {dane['aktualna_wydajnosc_h']} szt./h"
+        # =========================
+        # STAN LINII
+        # =========================
+        if dane["stan_linii"] == "URUCHOMIONA":
+            self.kafelek_stan_linii.ustaw_wartosc("URUCHOMIONA", kolor="green")
+        else:
+            self.kafelek_stan_linii.ustaw_wartosc("ZATRZYMANA", kolor="red")
+
+        # =========================
+        # KPI
+        # =========================
+        self.kpi_wydajnosc.ustaw_wartosc(f'{dane["aktualna_wydajnosc_h"]} szt./h')
+        self.kpi_liczba.ustaw_wartosc(f'{dane["liczba_jednostek"]}')
+        self.kpi_czas.ustaw_wartosc(f'{dane["czas_pracy_h"]} h')
+        self.kpi_energia.ustaw_wartosc(f'{dane["zuzycie_energii_kwh"]} kWh')
+
+        # =========================
+        # PASKI
+        # =========================
+        self.pasek_wydajnosc.ustaw_wartosc(
+            dane["wydajnosc_procentowa"],
+            tekst=f'{dane["wydajnosc_procentowa"]} %'
         )
-        self.produkcja_labels["Liczba jednostek"].config(
-            text=f"Liczba jednostek: {dane['liczba_jednostek']}"
+
+        self.pasek_odpady.ustaw_wartosc(
+            dane["odpady_procent"],
+            tekst=f'{dane["odpady_procent"]} %'
         )
-        self.produkcja_labels["Czas pracy linii"].config(
-            text=f"Czas pracy linii: {dane['czas_pracy_h']} h"
-        )
-        self.produkcja_labels["Wydajność procentowa"].config(
-            text=f"Wydajność procentowa: {dane['wydajnosc_procentowa']} %"
-        )
-        self.produkcja_labels["Czas cyklu"].config(
-            text=f"Czas cyklu: {dane['czas_cyklu_min']} min"
-        )
-        self.produkcja_labels["Zużycie surowców"].config(
-            text=f"Zużycie surowców: {dane['zuzycie_surowcow_kg']} kg"
-        )
-        self.produkcja_labels["Wadliwe jednostki"].config(
-            text=f"Wadliwe jednostki: {dane['wadliwe_jednostki']}"
-        )
-        self.produkcja_labels["Odpady"].config(
-            text=f"Odpady: {dane['odpady_procent']} %"
-        )
-        self.produkcja_labels["Zużycie energii"].config(
-            text=f"Zużycie energii: {dane['zuzycie_energii_kwh']} kWh"
-        )
-        self.produkcja_labels["Wydajność energetyczna maszyn"].config(
-            text=f"Wydajność energetyczna maszyn: {dane['wydajnosc_energetyczna']}"
+
+        # =========================
+        # SZCZEGÓŁY
+        # =========================
+        self.label_czas_cyklu.config(text=f'Czas cyklu: {dane["czas_cyklu_min"]} min')
+        self.label_surowce.config(text=f'Zużycie surowców: {dane["zuzycie_surowcow_kg"]} kg')
+        self.label_wadliwe.config(text=f'Wadliwe jednostki: {dane["wadliwe_jednostki"]}')
+        self.label_wydajnosc_energetyczna.config(
+            text=f'Wydajność energetyczna maszyn: {dane["wydajnosc_energetyczna"]}'
         )
 
     def pokaz_awarie(self):
