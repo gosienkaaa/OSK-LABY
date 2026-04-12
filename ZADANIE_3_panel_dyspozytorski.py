@@ -3,6 +3,9 @@ import random
 import tkinter as tk
 from tkinter import messagebox
 import psutil
+import math
+
+from pyparsing import col
 
 
 # =========================================================
@@ -138,16 +141,18 @@ class Wentylator(Urzadzenie):
 
 
 class LampkaStatusu(tk.Frame):
-    def __init__(self, parent, podpis="Stan"):
+    def __init__(self, parent, podpis=""):
         super().__init__(parent, bg="white")
-        self.canvas = tk.Canvas(self, width=40, height=40, bg="white", highlightthickness=0)
+        self.canvas = tk.Canvas(self, width=34, height=34, bg="white", highlightthickness=0)
         self.canvas.pack()
-        self.oval = self.canvas.create_oval(8, 8, 32, 32, fill="red", outline="black", width=2)
-        self.label = tk.Label(self, text=podpis, font=("Arial", 10), bg="white")
-        self.label.pack()
+        self.oval = self.canvas.create_oval(4, 4, 30, 30, fill="red", outline="gray30", width=2)
+
+        if podpis:
+            self.label = tk.Label(self, text=podpis, font=("Arial", 9), bg="white")
+            self.label.pack()
 
     def ustaw_stan(self, stan):
-        kolor = "green" if stan == "ON" or stan == "zamknięte" or stan == "aktywne" else "red"
+        kolor = "green" if stan in ("ON", "zamknięte", "aktywne") else "red"
         self.canvas.itemconfig(self.oval, fill=kolor)
 
 
@@ -162,7 +167,7 @@ class PionowySlupek(tk.Frame):
         self.label_tytul = tk.Label(self, text=podpis, font=("Arial", 10, "bold"), bg="white")
         self.label_tytul.pack()
 
-        self.canvas = tk.Canvas(self, width=70, height=220, bg="white", highlightthickness=0)
+        self.canvas = tk.Canvas(self, width=60, height=180, bg="white", highlightthickness=0)
         self.canvas.pack()
 
         # obramowanie słupka
@@ -201,50 +206,248 @@ class PionowySlupek(tk.Frame):
         self.canvas.itemconfig(self.fill_rect, fill=kolor)
         self.label_wartosc.config(text=f"{wartosc:.1f} {self.jednostka}")
 
-
 class PolkolistyWskaznik(tk.Frame):
     def __init__(self, parent, podpis="Obroty", min_val=0, max_val=3000, jednostka="RPM"):
         super().__init__(parent, bg="white")
+
         self.min_val = min_val
         self.max_val = max_val
         self.jednostka = jednostka
 
-        self.label_tytul = tk.Label(self, text=podpis, font=("Arial", 10, "bold"), bg="white")
-        self.label_tytul.pack()
+        self.szer = 220
+        self.wys = 170
+        self.cx = 110
+        self.cy = 115
+        self.r = 70
+        self.r_igla = 58
 
-        self.canvas = tk.Canvas(self, width=180, height=120, bg="white", highlightthickness=0)
+        self.canvas = tk.Canvas(self, width=self.szer, height=self.wys, bg="white", highlightthickness=0)
         self.canvas.pack()
 
-        # kolorowe strefy półkola
-        self.canvas.create_arc(20, 20, 160, 160, start=180, extent=36, style="arc", outline="green", width=12)
-        self.canvas.create_arc(20, 20, 160, 160, start=216, extent=36, style="arc", outline="#9ACD32", width=12)
-        self.canvas.create_arc(20, 20, 160, 160, start=252, extent=36, style="arc", outline="yellow", width=12)
-        self.canvas.create_arc(20, 20, 160, 160, start=288, extent=36, style="arc", outline="orange", width=12)
-        self.canvas.create_arc(20, 20, 160, 160, start=324, extent=36, style="arc", outline="red", width=12)
+        def punkt_na_luku(kat_stopnie, promien):
+            kat = math.radians(kat_stopnie)
+            x = self.cx + promien * math.cos(kat)
+            y = self.cy - promien * math.sin(kat)
+            return x, y
 
-        self.igla = self.canvas.create_line(90, 90, 90, 30, width=3, fill="black")
-        self.canvas.create_oval(84, 84, 96, 96, fill="black")
+        def narysuj_segment(kat_od, kat_do, kolor, grubosc=24, krok=3):
+            punkty = []
+            for kat in range(kat_od, kat_do - 1, -krok):
+                punkty.extend(punkt_na_luku(kat, self.r))
+            self.canvas.create_line(
+                *punkty,
+                fill=kolor,
+                width=grubosc,
+                smooth=True,
+                capstyle=tk.ROUND
+            )
+
+        # szare tło półkola - GÓRA
+        narysuj_segment(180, 0, "#d9d9d9", grubosc=24, krok=2)
+
+        # kolorowe segmenty - GÓRA od lewej do prawej
+        narysuj_segment(180, 126, "#1faa4a")
+        narysuj_segment(126, 90, "#8ac926")
+        narysuj_segment(90, 54, "#ffca3a")
+        narysuj_segment(54, 27, "#ff924c")
+        narysuj_segment(27, 0, "#e63946")
+
+        # wewnętrzne jasne półkole
+        punkty_wew = []
+        for kat in range(180, -1, -3):
+            punkty_wew.extend(punkt_na_luku(kat, 52))
+        self.canvas.create_line(
+            *punkty_wew,
+            fill="#f2f2f2",
+            width=16,
+            smooth=True,
+            capstyle=tk.ROUND
+        )
+
+        # podziałki
+        for kat_stopnie in [180, 144, 108, 72, 36, 0]:
+            x1, y1 = punkt_na_luku(kat_stopnie, 50)
+            x2, y2 = punkt_na_luku(kat_stopnie, 82)
+            self.canvas.create_line(x1, y1, x2, y2, fill="#b0b0b0", width=2)
+
+        # igła
+        self.igla = self.canvas.create_line(self.cx, self.cy, self.cx, self.cy - self.r_igla, width=4, fill="black")
+
+        # środek
+        self.canvas.create_oval(self.cx - 7, self.cy - 7, self.cx + 7, self.cy + 7,
+                                fill="#333333", outline="black")
+
+        self.label_podpis = tk.Label(self, text=podpis, font=("Arial", 10, "bold"), bg="white")
+        self.label_podpis.pack()
 
         self.label_wartosc = tk.Label(self, text=f"0 {jednostka}", font=("Arial", 10), bg="white")
         self.label_wartosc.pack()
 
     def aktualizuj(self, wartosc):
-        import math
-
         wartosc = max(self.min_val, min(wartosc, self.max_val))
         procent = (wartosc - self.min_val) / (self.max_val - self.min_val)
 
-        # zakres kąta: 180° do 0°
-        kat = 180 - (180 * procent)
-        rad = math.radians(kat)
+        kat_stopnie = 180 - (180 * procent)
+        kat = math.radians(kat_stopnie)
 
-        x0, y0 = 90, 90
-        dl = 55
-        x1 = x0 + dl * math.cos(rad)
-        y1 = y0 - dl * math.sin(rad)
+        x1 = self.cx + self.r_igla * math.cos(kat)
+        y1 = self.cy - self.r_igla * math.sin(kat)
 
-        self.canvas.coords(self.igla, x0, y0, x1, y1)
+        self.canvas.coords(self.igla, self.cx, self.cy, x1, y1)
         self.label_wartosc.config(text=f"{wartosc:.0f} {self.jednostka}")
+
+
+class KafelekUrzadzenia(tk.Frame):
+    def __init__(self, parent, nazwa, temp_min=0, temp_max=100, obroty_min=0, obroty_max=3000):
+        super().__init__(parent, bg="white", bd=2, relief="groove")
+
+        self.configure(padx=10, pady=10)
+
+        # górny pasek: lampka + nazwa
+        top = tk.Frame(self, bg="white")
+        top.pack(fill="x", pady=(0, 10))
+
+        self.lampka = LampkaStatusu(top, "")
+        self.lampka.pack(side="left", padx=(0, 10))
+
+        self.label_nazwa = tk.Label(
+            top,
+            text=nazwa,
+            font=("Arial", 14, "bold"),
+            bg="white",
+            anchor="w"
+        )
+        self.label_nazwa.pack(side="left")
+
+        # środek: temperatura + obroty
+        middle = tk.Frame(self, bg="white")
+        middle.pack()
+
+        self.slupek_temp = PionowySlupek(
+            middle,
+            podpis="temperatura obudowy",
+            min_val=temp_min,
+            max_val=temp_max,
+            jednostka="°C"
+        )
+        self.slupek_temp.pack(side="left", padx=6)
+
+        self.wsk_obroty = PolkolistyWskaznik(
+            middle,
+            podpis="obroty",
+            min_val=obroty_min,
+            max_val=obroty_max,
+            jednostka="RPM"
+        )
+        self.wsk_obroty.pack(side="left", padx=6)
+
+    def aktualizuj(self, stan, temperatura, obroty):
+        self.lampka.ustaw_stan(stan)
+        self.slupek_temp.aktualizuj(temperatura)
+        self.wsk_obroty.aktualizuj(obroty)
+
+
+class KafelekStatusu(tk.Frame):
+    def __init__(self, parent, nazwa):
+        super().__init__(parent, bg="white", bd=2, relief="groove")
+        self.configure(padx=12, pady=12)
+
+        top = tk.Frame(self, bg="white")
+        top.pack()
+
+        self.lampka = LampkaStatusu(top, "")
+        self.lampka.pack(side="left", padx=(0, 8))
+
+        self.label_nazwa = tk.Label(
+            top,
+            text=nazwa,
+            font=("Arial", 12, "bold"),
+            bg="white"
+        )
+        self.label_nazwa.pack(side="left")
+
+        self.label_stan = tk.Label(
+            self,
+            text="",
+            font=("Arial", 11),
+            bg="white"
+        )
+        self.label_stan.pack(pady=(8, 0))
+
+    def aktualizuj(self, stan):
+        self.lampka.ustaw_stan(stan)
+        self.label_stan.config(text=f"Stan: {stan}")
+
+
+from tkinter import ttk
+
+
+class KafelekKPI(tk.Frame):
+    def __init__(self, parent, tytul, wartosc="0", szer=220, wys=110):
+        super().__init__(parent, bg="white", bd=2, relief="groove")
+        self.configure(width=szer, height=wys)
+        self.pack_propagate(False)
+
+        self.label_tytul = tk.Label(
+            self,
+            text=tytul,
+            font=("Arial", 12, "bold"),
+            bg="white",
+            fg="#333333"
+        )
+        self.label_tytul.pack(pady=(12, 6))
+
+        self.label_wartosc = tk.Label(
+            self,
+            text=wartosc,
+            font=("Arial", 20, "bold"),
+            bg="white",
+            fg="#0b5394"
+        )
+        self.label_wartosc.pack(pady=(0, 10))
+
+    def ustaw_wartosc(self, tekst, kolor="#0b5394"):
+        self.label_wartosc.config(text=tekst, fg=kolor)
+
+
+class PasekParametru(tk.Frame):
+    def __init__(self, parent, tytul, max_val=100, jednostka="%"):
+        super().__init__(parent, bg="white", bd=2, relief="groove")
+        self.max_val = max_val
+        self.jednostka = jednostka
+
+        self.label_tytul = tk.Label(
+            self,
+            text=tytul,
+            font=("Arial", 12, "bold"),
+            bg="white"
+        )
+        self.label_tytul.pack(anchor="w", padx=10, pady=(10, 4))
+
+        self.label_wartosc = tk.Label(
+            self,
+            text=f"0 {jednostka}",
+            font=("Arial", 11),
+            bg="white"
+        )
+        self.label_wartosc.pack(anchor="w", padx=10)
+
+        self.progress = ttk.Progressbar(
+            self,
+            orient="horizontal",
+            mode="determinate",
+            length=320,
+            maximum=max_val
+        )
+        self.progress.pack(fill="x", padx=10, pady=(8, 12))
+
+    def ustaw_wartosc(self, wartosc, tekst=None):
+        wartosc = max(0, min(wartosc, self.max_val))
+        self.progress["value"] = wartosc
+        if tekst is None:
+            tekst = f"{wartosc:.1f} {self.jednostka}"
+        self.label_wartosc.config(text=tekst)
+
 
 
 # =========================================================
@@ -621,8 +824,29 @@ class PanelDyspozytorski:
         self.menu_frame.pack(side="left", fill="y")
         self.menu_frame.pack_propagate(False)
 
-        self.content_frame = tk.Frame(self.main_frame, bg="white", bd=2, relief="solid")
-        self.content_frame.pack(side="right", fill="both", expand=True)
+        self.content_outer = tk.Frame(self.main_frame, bg="white", bd=2, relief="solid")
+        self.content_outer.pack(side="right", fill="both", expand=True)
+
+        self.canvas_content = tk.Canvas(self.content_outer, bg="white", highlightthickness=0)
+        self.scrollbar_y = tk.Scrollbar(self.content_outer, orient="vertical", command=self.canvas_content.yview)
+        self.canvas_content.configure(yscrollcommand=self.scrollbar_y.set)
+
+        self.scrollbar_y.pack(side="right", fill="y")
+        self.canvas_content.pack(side="left", fill="both", expand=True)
+
+        self.content_frame = tk.Frame(self.canvas_content, bg="white")
+        self.canvas_window = self.canvas_content.create_window((0, 0), window=self.content_frame, anchor="nw")
+
+        def _on_frame_configure(event):
+            self.canvas_content.configure(scrollregion=self.canvas_content.bbox("all"))
+
+        def _on_canvas_configure(event):
+            self.canvas_content.itemconfig(self.canvas_window, width=event.width)
+
+        self.content_frame.bind("<Configure>", _on_frame_configure)
+        self.canvas_content.bind("<Configure>", _on_canvas_configure)
+
+        self.canvas_content.bind_all("<MouseWheel>", self._scroll_mousewheel)
 
         tk.Button(
             self.menu_frame, text="Stan urządzeń", font=("Arial", 14), height=2,
@@ -667,6 +891,9 @@ class PanelDyspozytorski:
         self.pokaz_stan_urzadzen()
         self.petla_glowna_aktualizacji()
         self.root.after(self.interwal_sprawdzenia_ms, self.wyswietl_sprawdzenie_obecnosci)
+
+    def _scroll_mousewheel(self, event):
+        self.canvas_content.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     def wyczysc_content(self):
         for widget in self.content_frame.winfo_children():
@@ -796,71 +1023,90 @@ class PanelDyspozytorski:
             bg="white"
         ).pack(pady=10)
 
-        # główny kontener
         self.urzadzenia_main = tk.Frame(self.content_frame, bg="white")
         self.urzadzenia_main.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # =========================
-        # GÓRNY RZĄD - temperatury
-        # =========================
-        temp_frame = tk.Frame(self.urzadzenia_main, bg="white")
-        temp_frame.pack(pady=10)
+        # siatka kafelków
+        self.kafelek_silnik = KafelekUrzadzenia(
+            self.urzadzenia_main,
+            "Silnik",
+            temp_min=35,
+            temp_max=95,
+            obroty_min=0,
+            obroty_max=3000
+        )
+        self.kafelek_silnik.grid(row=0, column=0, padx=8, pady=8, sticky="nsew")
 
-        self.slupek_temp_silnik = PionowySlupek(temp_frame, "Temp. silnika", 35, 95, "°C")
-        self.slupek_temp_silnik.pack(side="left", padx=15)
+        self.kafelek_pompa1 = KafelekUrzadzenia(
+            self.urzadzenia_main,
+            "Pompa chłodnicza 1",
+            temp_min=18,
+            temp_max=75,
+            obroty_min=0,
+            obroty_max=2600
+        )
+        self.kafelek_pompa1.grid(row=0, column=1, padx=8, pady=8, sticky="nsew")
 
-        self.slupek_temp_pompa1 = PionowySlupek(temp_frame, "Temp. pompa 1", 18, 75, "°C")
-        self.slupek_temp_pompa1.pack(side="left", padx=15)
+        self.kafelek_pompa2 = KafelekUrzadzenia(
+            self.urzadzenia_main,
+            "Pompa chłodnicza 2",
+            temp_min=18,
+            temp_max=75,
+            obroty_min=0,
+            obroty_max=2600
+        )
+        self.kafelek_pompa2.grid(row=0, column=2, padx=8, pady=8, sticky="nsew")
 
-        self.slupek_temp_pompa2 = PionowySlupek(temp_frame, "Temp. pompa 2", 18, 75, "°C")
-        self.slupek_temp_pompa2.pack(side="left", padx=15)
+        self.kafelek_went1 = KafelekUrzadzenia(
+            self.urzadzenia_main,
+            "Wentylator 1",
+            temp_min=0,
+            temp_max=100,
+            obroty_min=0,
+            obroty_max=3200
+        )
+        self.kafelek_went1.grid(row=1, column=0, padx=8, pady=8, sticky="nsew")
 
-        # =========================
-        # ŚRODKOWY RZĄD - obroty
-        # =========================
-        obroty_frame = tk.Frame(self.urzadzenia_main, bg="white")
-        obroty_frame.pack(pady=10)
+        self.kafelek_went2 = KafelekUrzadzenia(
+            self.urzadzenia_main,
+            "Wentylator 2",
+            temp_min=0,
+            temp_max=100,
+            obroty_min=0,
+            obroty_max=3200
+        )
+        self.kafelek_went2.grid(row=1, column=1, padx=8, pady=8, sticky="nsew")
 
-        self.wsk_silnik = PolkolistyWskaznik(obroty_frame, "Silnik", 0, 3000, "RPM")
-        self.wsk_silnik.pack(side="left", padx=15)
+            # ==========================================
+    # SEKCJA POZOSTAŁYCH ELEMENTÓW - tylko lampki
+    # ==========================================
+        self.label_pozostale = tk.Label(
+            self.urzadzenia_main,
+            text="Pozostałe elementy",
+            font=("Arial", 16, "bold"),
+            bg="white"
+        )
+        self.label_pozostale.grid(row=2, column=0, columnspan=3, pady=(15, 8), sticky="w")
 
-        self.wsk_pompa1 = PolkolistyWskaznik(obroty_frame, "Pompa 1", 0, 2600, "RPM")
-        self.wsk_pompa1.pack(side="left", padx=15)
+        self.pozostale_frame = tk.Frame(self.urzadzenia_main, bg="white")
+        self.pozostale_frame.grid(row=3, column=0, columnspan=3, sticky="w", pady=(0, 8))
 
-        self.wsk_pompa2 = PolkolistyWskaznik(obroty_frame, "Pompa 2", 0, 2600, "RPM")
-        self.wsk_pompa2.pack(side="left", padx=15)
+        self.kafelek_zasilanie_glowne = KafelekStatusu(self.pozostale_frame, "Zasilanie główne")
+        self.kafelek_zasilanie_glowne.grid(row=0, column=0, padx=8, pady=8, sticky="w")
 
-        self.wsk_went1 = PolkolistyWskaznik(obroty_frame, "Wentylator 1", 0, 3200, "RPM")
-        self.wsk_went1.pack(side="left", padx=15)
+        self.kafelek_zasilanie_awaryjne = KafelekStatusu(self.pozostale_frame, "Zasilanie awaryjne")
+        self.kafelek_zasilanie_awaryjne.grid(row=0, column=1, padx=8, pady=8, sticky="w")
 
-        self.wsk_went2 = PolkolistyWskaznik(obroty_frame, "Wentylator 2", 0, 3200, "RPM")
-        self.wsk_went2.pack(side="left", padx=15)
+        self.kafelek_drzwi = KafelekStatusu(self.pozostale_frame, "Drzwi bezpieczeństwa")
+        self.kafelek_drzwi.grid(row=0, column=2, padx=8, pady=8, sticky="w")
 
-        # =========================
-        # DOLNY RZĄD - lampki statusu
-        # =========================
-        lampki_frame = tk.Frame(self.urzadzenia_main, bg="white")
-        lampki_frame.pack(pady=15)
+        self.kafelek_czujnik = KafelekStatusu(self.pozostale_frame, "Czujnik obecności")
+        self.kafelek_czujnik.grid(row=1, column=0, padx=8, pady=8, sticky="w")
 
-        self.lampka_silnik = LampkaStatusu(lampki_frame, "Silnik")
-        self.lampka_silnik.pack(side="left", padx=10)
+        self.kafelek_naped = KafelekStatusu(self.pozostale_frame, "Napęd pneumatyczny")
+        self.kafelek_naped.grid(row=1, column=1, padx=8, pady=8, sticky="w")
 
-        self.lampka_pompa1 = LampkaStatusu(lampki_frame, "Pompa 1")
-        self.lampka_pompa1.pack(side="left", padx=10)
 
-        self.lampka_pompa2 = LampkaStatusu(lampki_frame, "Pompa 2")
-        self.lampka_pompa2.pack(side="left", padx=10)
-
-        self.lampka_went1 = LampkaStatusu(lampki_frame, "Wentylator 1")
-        self.lampka_went1.pack(side="left", padx=10)
-
-        self.lampka_went2 = LampkaStatusu(lampki_frame, "Wentylator 2")
-        self.lampka_went2.pack(side="left", padx=10)
-
-        self.lampka_zasilanie = LampkaStatusu(lampki_frame, "Zasilanie aw.")
-        self.lampka_zasilanie.pack(side="left", padx=10)
-
-        # dodatkowy opis tekstowy
         self.opis_stanow = tk.Label(
             self.urzadzenia_main,
             text="",
@@ -868,7 +1114,10 @@ class PanelDyspozytorski:
             bg="white",
             justify="left"
         )
-        self.opis_stanow.pack(pady=10)
+        self.opis_stanow.grid(row=4, column=0, columnspan=3, pady=8, sticky="w")
+
+        for col in range(3):
+            self.urzadzenia_main.grid_columnconfigure(col, weight=1)
 
         self.odswiez_stan_urzadzen()
 
@@ -876,38 +1125,50 @@ class PanelDyspozytorski:
         if self.aktualny_widok != "urzadzenia":
             return
 
-        # słupki temperatur
-        self.slupek_temp_silnik.aktualizuj(silnik.monitorowanie_temperatury())
-        self.slupek_temp_pompa1.aktualizuj(pompa_chlodnicza1.monitorowanie_temperatury())
-        self.slupek_temp_pompa2.aktualizuj(pompa_chlodnicza2.monitorowanie_temperatury())
+        self.kafelek_silnik.aktualizuj(
+            silnik.stan,
+            silnik.monitorowanie_temperatury(),
+            silnik.monitorowanie_obrotow()
+        )
 
-        # półkola obrotów
-        self.wsk_went1.aktualizuj(wentylator1.obroty_wentylatora)
-        self.wsk_went2.aktualizuj(wentylator2.obroty_wentylatora)
-        self.wsk_silnik.aktualizuj(silnik.monitorowanie_obrotow())
-        self.wsk_pompa1.aktualizuj(pompa_chlodnicza1.monitorowanie_obrotow())
-        self.wsk_pompa2.aktualizuj(pompa_chlodnicza2.monitorowanie_obrotow())
-        self.wsk_went1.aktualizuj(wentylator1.obroty_wentylatora)
-        self.wsk_went2.aktualizuj(wentylator2.obroty_wentylatora)
+        self.kafelek_pompa1.aktualizuj(
+            pompa_chlodnicza1.stan,
+            pompa_chlodnicza1.monitorowanie_temperatury(),
+            pompa_chlodnicza1.monitorowanie_obrotow()
+        )
 
+        self.kafelek_pompa2.aktualizuj(
+            pompa_chlodnicza2.stan,
+            pompa_chlodnicza2.monitorowanie_temperatury(),
+            pompa_chlodnicza2.monitorowanie_obrotow()
+        )
 
-        # lampki statusu
-        self.lampka_silnik.ustaw_stan(silnik.stan)
-        self.lampka_pompa1.ustaw_stan(pompa_chlodnicza1.stan)
-        self.lampka_pompa2.ustaw_stan(pompa_chlodnicza2.stan)
-        self.lampka_went1.ustaw_stan(wentylator1.stan)
-        self.lampka_went2.ustaw_stan(wentylator2.stan)
-        self.lampka_zasilanie.ustaw_stan(zasilanie_awaryjne.stan)
+        # dla wentylatorów temperatura nie jest realnie liczona,
+        # więc możesz dać np. 0 albo później dodać osobny parametr
+        self.kafelek_went1.aktualizuj(
+            wentylator1.stan,
+            0,
+            wentylator1.obroty_wentylatora
+        )
 
+        self.kafelek_went2.aktualizuj(
+            wentylator2.stan,
+            0,
+            wentylator2.obroty_wentylatora
+        )
+
+        self.kafelek_zasilanie_glowne.aktualizuj(zasilanie_glowne.stan)
+        self.kafelek_zasilanie_awaryjne.aktualizuj(zasilanie_awaryjne.stan)
+        self.kafelek_drzwi.aktualizuj(drzwi_bezpieczenstwa.stan)
+        self.kafelek_czujnik.aktualizuj(czujnik_obecnosci.stan)
+        self.kafelek_naped.aktualizuj(naped_pneumatyczny.stan)
 
         tekst = (
-            f"Silnik: {silnik.temperatura:.1f} °C, {silnik.obroty:.0f} RPM | "
-            f"Pompa 1: {pompa_chlodnicza1.temperatura:.1f} °C, {pompa_chlodnicza1.obroty:.0f} RPM | "
-            f"Pompa 2: {pompa_chlodnicza2.temperatura:.1f} °C, {pompa_chlodnicza2.obroty:.0f} RPM\n"
             f"Zasilanie główne: {zasilanie_glowne.stan} | "
             f"Zasilanie awaryjne: {zasilanie_awaryjne.stan} | "
             f"Drzwi bezpieczeństwa: {drzwi_bezpieczenstwa.stan} | "
-            f"Czujnik obecności: {czujnik_obecnosci.stan}"
+            f"Czujnik obecności: {czujnik_obecnosci.stan} | "
+            f"Napęd pneumatyczny: {naped_pneumatyczny.stan}"
         )
         self.opis_stanow.config(text=tekst)
 
