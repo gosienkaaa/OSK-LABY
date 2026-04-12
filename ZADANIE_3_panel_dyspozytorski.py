@@ -5,9 +5,6 @@ from tkinter import messagebox
 import psutil
 import math
 
-from pyparsing import col
-
-
 # =========================================================
 # UŻYTKOWNICY
 # =========================================================
@@ -81,7 +78,7 @@ class Silnik(Urzadzenie):
             if self.nazwa == "silnik":
                 if linia_dziala:
                     self.obroty += random.uniform(-40, 80) * intensywnosc_pracy
-                    self.temperatura += random.uniform(0.05, 0.35) * intensywnosc_pracy
+                    self.temperatura += random.uniform(0.15, 0.45) * intensywnosc_pracy
                 else:
                     self.obroty += random.uniform(-30, 20)
                     self.temperatura -= random.uniform(0.05, 0.15)
@@ -90,7 +87,7 @@ class Silnik(Urzadzenie):
             elif "pompa_chlodnicza" in self.nazwa:
                 if linia_dziala:
                     self.obroty += random.uniform(-30, 60) * intensywnosc_pracy
-                    self.temperatura += random.uniform(0.03, 0.20) * intensywnosc_pracy
+                    self.temperatura += random.uniform(0.15, 0.45) * intensywnosc_pracy
                 else:
                     self.obroty += random.uniform(-20, 15)
                     self.temperatura -= random.uniform(0.05, 0.15)
@@ -205,6 +202,51 @@ class PionowySlupek(tk.Frame):
         self.canvas.coords(self.fill_rect, 21, nowy_y, 49, y_bottom)
         self.canvas.itemconfig(self.fill_rect, fill=kolor)
         self.label_wartosc.config(text=f"{wartosc:.1f} {self.jednostka}")
+
+
+class PoziomyPasek(tk.Frame):
+    def __init__(self, parent, podpis="Parametr", min_val=0, max_val=100, jednostka=""):
+        super().__init__(parent, bg="white")
+        self.min_val = min_val
+        self.max_val = max_val
+        self.jednostka = jednostka
+
+        self.label_tytul = tk.Label(self, text=podpis, font=("Arial", 10, "bold"), bg="white")
+        self.label_tytul.pack(anchor="w")
+
+        self.canvas = tk.Canvas(self, width=150, height=30, bg="white", highlightthickness=0)
+        self.canvas.pack()
+
+        # tło paska
+        self.canvas.create_rectangle(10, 8, 160, 22, outline="black", width=1)
+        self.canvas.create_rectangle(11, 9, 60, 21, fill="#4CAF50", outline="")
+        self.canvas.create_rectangle(61, 9, 110, 21, fill="#FFC107", outline="")
+        self.canvas.create_rectangle(111, 9, 159, 21, fill="#F44336", outline="")
+
+        self.fill_rect = self.canvas.create_rectangle(11, 9, 11, 21, fill="green", outline="")
+
+        self.label_wartosc = tk.Label(self, text=f"0 {jednostka}", font=("Arial", 10), bg="white")
+        self.label_wartosc.pack(anchor="w")
+
+    def aktualizuj(self, wartosc):
+        wartosc = max(self.min_val, min(wartosc, self.max_val))
+        procent = (wartosc - self.min_val) / (self.max_val - self.min_val)
+
+        x_start = 11
+        x_end = 159
+        nowy_x = x_start + (x_end - x_start) * procent
+
+        if procent < 0.5:
+            kolor = "green"
+        elif procent < 0.75:
+            kolor = "orange"
+        else:
+            kolor = "red"
+
+        self.canvas.coords(self.fill_rect, x_start, 9, nowy_x, 21)
+        self.canvas.itemconfig(self.fill_rect, fill=kolor)
+        self.label_wartosc.config(text=f"{wartosc:.1f} {self.jednostka}")
+
 
 class PolkolistyWskaznik(tk.Frame):
     def __init__(self, parent, podpis="Obroty", min_val=0, max_val=3000, jednostka="RPM"):
@@ -347,6 +389,53 @@ class KafelekUrzadzenia(tk.Frame):
         self.wsk_obroty.aktualizuj(obroty)
 
 
+class KafelekWentylatora(tk.Frame):
+    def __init__(self, parent, nazwa, wydajnosc_min=0, wydajnosc_max=350, obroty_min=0, obroty_max=3200):
+        super().__init__(parent, bg="white", bd=2, relief="groove")
+        self.configure(padx=10, pady=10)
+
+        top = tk.Frame(self, bg="white")
+        top.pack(fill="x", pady=(0, 10))
+
+        self.lampka = LampkaStatusu(top, "")
+        self.lampka.pack(side="left", padx=(0, 10))
+
+        self.label_nazwa = tk.Label(
+            top,
+            text=nazwa,
+            font=("Arial", 14, "bold"),
+            bg="white",
+            anchor="w"
+        )
+        self.label_nazwa.pack(side="left")
+
+        middle = tk.Frame(self, bg="white")
+        middle.pack()
+
+        self.pasek_wydajnosci = PoziomyPasek(
+            middle,
+            podpis="wydajność",
+            min_val=wydajnosc_min,
+            max_val=wydajnosc_max,
+            jednostka="m³/h"
+        )
+        self.pasek_wydajnosci.pack(side="left", padx=3, pady=8)
+
+        self.wsk_obroty = PolkolistyWskaznik(
+            middle,
+            podpis="obroty",
+            min_val=obroty_min,
+            max_val=obroty_max,
+            jednostka="RPM"
+        )
+        self.wsk_obroty.pack(side="left", padx=8)
+
+    def aktualizuj(self, stan, wydajnosc, obroty):
+        self.lampka.ustaw_stan(stan)
+        self.pasek_wydajnosci.aktualizuj(wydajnosc)
+        self.wsk_obroty.aktualizuj(obroty)
+
+
 class KafelekStatusu(tk.Frame):
     def __init__(self, parent, nazwa):
         super().__init__(parent, bg="white", bd=2, relief="groove")
@@ -454,8 +543,8 @@ class PasekParametru(tk.Frame):
 # PARAMETRY CHŁODZENIA
 # =========================================================
 
-PROG_WLACZENIA_POMPY2 = 45.0
-PROG_WYLACZENIA_POMPY2 = 40.0
+PROG_WLACZENIA_POMPY2 = 40.0
+PROG_WYLACZENIA_POMPY2 = 35.0
 
 
 # urządzenia instalacji
@@ -557,7 +646,7 @@ def aktualizuj_urzadzenia():
 
     # chłodzenie silnika przez wentylatory
     if wentylator1.stan == "ON":
-        silnik.temperatura -= random.uniform(0.10, 0.25)
+        silnik.temperatura -= random.uniform(0.03, 0.10)
 
     if wentylator2.stan == "ON":
         silnik.temperatura -= random.uniform(0.20, 0.45)
@@ -569,6 +658,7 @@ def aktualizuj_urzadzenia():
     pompa_chlodnicza1.aktualizuj_temperature(linia_uruchomiona, intensywnosc_pracy=max(intensywnosc, 0.4))
     pompa_chlodnicza2.aktualizuj_temperature(linia_uruchomiona, intensywnosc_pracy=max(intensywnosc, 0.4))
 
+    steruj_pompami_chlodniczymi()
     wentylator1.aktualizuj_obroty(linia_uruchomiona)
 
     # wentylator 2 aktualizuje obroty tylko gdy jest włączony
@@ -668,8 +758,8 @@ PROG_TEMP_SILNIKA = 80.0
 PROG_TEMP_POMPY = 60.0
 PROG_MIN_OBROTY_WENTYLATORA = 1500.0
 PROG_CPU = 85.0
-PROG_WLACZENIA_WENTYLATORA2 = 75.0
-PROG_WYLACZENIA_WENTYLATORA2 = 70.0
+PROG_WLACZENIA_WENTYLATORA2 = 60.0
+PROG_WYLACZENIA_WENTYLATORA2 = 55.0
 SZANSA_AWARII_WENTYLATORA2 = 0.01
 
 SZANSA_AWARII_ZASILANIA = 0.02
@@ -699,6 +789,19 @@ def przywroc_zasilanie_glowne():
     zasilanie_glowne.stan = "ON"
     zasilanie_awaryjne.stan = "OFF"
     dodaj_zdarzenie("INFO: przywrócono zasilanie główne, wyłączono zasilanie awaryjne.")
+
+
+def napraw_naped_pneumatyczny():
+    global aktywny_alarm
+
+    naped_pneumatyczny.stan = "ON"
+
+    aktywny_alarm = [
+        alarm for alarm in aktywny_alarm
+        if alarm != "Awaria napędu pneumatycznego"
+    ]
+
+    dodaj_zdarzenie("INFO: napęd pneumatyczny został naprawiony i ponownie uruchomiony.")
 
 def zatrzymaj_linie_awaryjnie(powod):
     global linia_uruchomiona, ostatnia_aktualizacja_produkcji
@@ -806,7 +909,7 @@ class PanelDyspozytorski:
     def __init__(self, root):
         self.root = root
         self.root.title("Panel dyspozytorski")
-        self.root.geometry("1250x720")
+        self.root.state("zoomed")
         self.root.configure(bg="lightgray")
 
         self.aktualny_widok = None
@@ -873,6 +976,15 @@ class PanelDyspozytorski:
             height=2, bg="#b6e3b6", command=self.przelacz_linie
         )
         self.btn_linia.pack(fill="x", pady=(20, 2))
+
+        tk.Button(
+            self.menu_frame,
+            text="Napraw napęd pneumatyczny",
+            font=("Arial", 14),
+            height=2,
+            bg="#cfe2f3",
+            command=self.napraw_naped
+        ).pack(fill="x", pady=2)
 
         tk.Button(
             self.menu_frame, text="Wyloguj", font=("Arial", 14), height=2,
@@ -1012,6 +1124,20 @@ class PanelDyspozytorski:
             self.root.destroy()
             pokaz_okno_logowania()
 
+    def napraw_naped(self):
+        if naped_pneumatyczny.stan == "ON":
+            messagebox.showinfo("Napęd pneumatyczny", "Napęd pneumatyczny działa poprawnie.")
+            return
+
+        napraw_naped_pneumatyczny()
+        messagebox.showinfo(
+            "Napęd pneumatyczny",
+            "Napęd pneumatyczny został naprawiony.\nMożna ponownie uruchomić linię."
+        )
+
+        if self.aktualny_widok == "urzadzenia":
+            self.odswiez_stan_urzadzen()
+
     def pokaz_stan_urzadzen(self):
         self.aktualny_widok = "urzadzenia"
         self.wyczysc_content()
@@ -1057,21 +1183,21 @@ class PanelDyspozytorski:
         )
         self.kafelek_pompa2.grid(row=0, column=2, padx=8, pady=8, sticky="nsew")
 
-        self.kafelek_went1 = KafelekUrzadzenia(
+        self.kafelek_went1 = KafelekWentylatora(
             self.urzadzenia_main,
             "Wentylator 1",
-            temp_min=0,
-            temp_max=100,
+            wydajnosc_min=0,
+            wydajnosc_max=350,
             obroty_min=0,
             obroty_max=3200
         )
         self.kafelek_went1.grid(row=1, column=0, padx=8, pady=8, sticky="nsew")
 
-        self.kafelek_went2 = KafelekUrzadzenia(
+        self.kafelek_went2 = KafelekWentylatora(
             self.urzadzenia_main,
             "Wentylator 2",
-            temp_min=0,
-            temp_max=100,
+            wydajnosc_min=0,
+            wydajnosc_max=350,
             obroty_min=0,
             obroty_max=3200
         )
@@ -1142,18 +1268,16 @@ class PanelDyspozytorski:
             pompa_chlodnicza2.monitorowanie_temperatury(),
             pompa_chlodnicza2.monitorowanie_obrotow()
         )
-
-        # dla wentylatorów temperatura nie jest realnie liczona,
-        # więc możesz dać np. 0 albo później dodać osobny parametr
+    
         self.kafelek_went1.aktualizuj(
             wentylator1.stan,
-            0,
+            wentylator1.wydajnosc_wentylatora(),
             wentylator1.obroty_wentylatora
         )
 
         self.kafelek_went2.aktualizuj(
             wentylator2.stan,
-            0,
+            wentylator2.wydajnosc_wentylatora(),
             wentylator2.obroty_wentylatora
         )
 
@@ -1206,7 +1330,7 @@ class PanelDyspozytorski:
         self.kpi_frame.grid(row=1, column=0, columnspan=2, sticky="w")
 
         self.kpi_wydajnosc = KafelekKPI(self.kpi_frame, "Aktualna wydajność", "0 szt./h")
-        self.kpi_wydajnosc.grid(row=0, column=0, padx=8, pady=8)
+        self.kpi_wydajnosc.grid(row=0, column=0, padx=4, pady=8)
 
         self.kpi_liczba = KafelekKPI(self.kpi_frame, "Liczba jednostek", "0")
         self.kpi_liczba.grid(row=0, column=1, padx=8, pady=8)
