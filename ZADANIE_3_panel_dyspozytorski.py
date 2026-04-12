@@ -48,31 +48,55 @@ class Silnik(Urzadzenie):
     def __init__(self, nazwa, stan="ON"):
         super().__init__(nazwa, stan)
         self.temperatura = self.temperatura_startowa()
+        self.obroty = self.obroty_startowe()
 
     def temperatura_startowa(self):
         if self.nazwa == "silnik":
             return random.uniform(45.0, 55.0)
-        elif self.nazwa == "pompa_chlodnicza":
+        elif "pompa_chlodnicza" in self.nazwa:
             return random.uniform(22.0, 32.0)
         return random.uniform(25.0, 40.0)
+
+    def obroty_startowe(self):
+        if self.nazwa == "silnik":
+            return random.uniform(1400.0, 1800.0)
+        elif "pompa_chlodnicza" in self.nazwa:
+            return random.uniform(1100.0, 1500.0)
+        return 0.0
 
     def monitorowanie_temperatury(self):
         return self.temperatura
 
+    def monitorowanie_obrotow(self):
+        return self.obroty
+
     def aktualizuj_temperature(self, linia_dziala, intensywnosc_pracy=1.0):
         if self.stan != "ON":
             self.temperatura -= random.uniform(0.1, 0.3)
+            self.obroty = 0.0
         else:
-            if linia_dziala:
-                self.temperatura += random.uniform(0.05, 0.35) * intensywnosc_pracy
-            else:
-                self.temperatura -= random.uniform(0.05, 0.15)
+            if self.nazwa == "silnik":
+                if linia_dziala:
+                    self.obroty += random.uniform(-40, 80) * intensywnosc_pracy
+                    self.temperatura += random.uniform(0.05, 0.35) * intensywnosc_pracy
+                else:
+                    self.obroty += random.uniform(-30, 20)
+                    self.temperatura -= random.uniform(0.05, 0.15)
+                self.obroty = max(900.0, min(self.obroty, 3000.0))
+
+            elif "pompa_chlodnicza" in self.nazwa:
+                if linia_dziala:
+                    self.obroty += random.uniform(-30, 60) * intensywnosc_pracy
+                    self.temperatura += random.uniform(0.03, 0.20) * intensywnosc_pracy
+                else:
+                    self.obroty += random.uniform(-20, 15)
+                    self.temperatura -= random.uniform(0.05, 0.15)
+                self.obroty = max(700.0, min(self.obroty, 2600.0))
 
         if self.nazwa == "silnik":
             self.temperatura = max(35.0, min(self.temperatura, 95.0))
         else:
             self.temperatura = max(18.0, min(self.temperatura, 75.0))
-
 
 class Wentylator(Urzadzenie):
     def __init__(self, nazwa, stan="ON"):
@@ -113,6 +137,116 @@ class Wentylator(Urzadzenie):
             self.obroty_wentylatora = max(600.0, min(self.obroty_wentylatora, 1500.0))
 
 
+class LampkaStatusu(tk.Frame):
+    def __init__(self, parent, podpis="Stan"):
+        super().__init__(parent, bg="white")
+        self.canvas = tk.Canvas(self, width=40, height=40, bg="white", highlightthickness=0)
+        self.canvas.pack()
+        self.oval = self.canvas.create_oval(8, 8, 32, 32, fill="red", outline="black", width=2)
+        self.label = tk.Label(self, text=podpis, font=("Arial", 10), bg="white")
+        self.label.pack()
+
+    def ustaw_stan(self, stan):
+        kolor = "green" if stan == "ON" or stan == "zamknięte" or stan == "aktywne" else "red"
+        self.canvas.itemconfig(self.oval, fill=kolor)
+
+
+class PionowySlupek(tk.Frame):
+    def __init__(self, parent, podpis="Parametr", min_val=0, max_val=100, jednostka=""):
+        super().__init__(parent, bg="white")
+        self.min_val = min_val
+        self.max_val = max_val
+        self.jednostka = jednostka
+        self.podpis = podpis
+
+        self.label_tytul = tk.Label(self, text=podpis, font=("Arial", 10, "bold"), bg="white")
+        self.label_tytul.pack()
+
+        self.canvas = tk.Canvas(self, width=70, height=220, bg="white", highlightthickness=0)
+        self.canvas.pack()
+
+        # obramowanie słupka
+        self.canvas.create_rectangle(20, 20, 50, 180, outline="black", width=2)
+
+        # segmenty tła
+        self.canvas.create_rectangle(21, 140, 49, 179, fill="#4CAF50", outline="")
+        self.canvas.create_rectangle(21, 100, 49, 139, fill="#CDDC39", outline="")
+        self.canvas.create_rectangle(21, 60, 49, 99, fill="#FFC107", outline="")
+        self.canvas.create_rectangle(21, 21, 49, 59, fill="#F44336", outline="")
+
+        # wypełnienie dynamiczne
+        self.fill_rect = self.canvas.create_rectangle(21, 179, 49, 179, fill="blue", outline="")
+
+        self.label_wartosc = tk.Label(self, text=f"0 {jednostka}", font=("Arial", 10), bg="white")
+        self.label_wartosc.pack()
+
+    def aktualizuj(self, wartosc):
+        wartosc = max(self.min_val, min(wartosc, self.max_val))
+        procent = (wartosc - self.min_val) / (self.max_val - self.min_val)
+
+        y_bottom = 179
+        y_top = 20
+        wysokosc = y_bottom - y_top
+        nowy_y = y_bottom - (procent * wysokosc)
+
+        # kolor dynamiczny
+        if procent < 0.5:
+            kolor = "green"
+        elif procent < 0.75:
+            kolor = "orange"
+        else:
+            kolor = "red"
+
+        self.canvas.coords(self.fill_rect, 21, nowy_y, 49, y_bottom)
+        self.canvas.itemconfig(self.fill_rect, fill=kolor)
+        self.label_wartosc.config(text=f"{wartosc:.1f} {self.jednostka}")
+
+
+class PolkolistyWskaznik(tk.Frame):
+    def __init__(self, parent, podpis="Obroty", min_val=0, max_val=3000, jednostka="RPM"):
+        super().__init__(parent, bg="white")
+        self.min_val = min_val
+        self.max_val = max_val
+        self.jednostka = jednostka
+
+        self.label_tytul = tk.Label(self, text=podpis, font=("Arial", 10, "bold"), bg="white")
+        self.label_tytul.pack()
+
+        self.canvas = tk.Canvas(self, width=180, height=120, bg="white", highlightthickness=0)
+        self.canvas.pack()
+
+        # kolorowe strefy półkola
+        self.canvas.create_arc(20, 20, 160, 160, start=180, extent=36, style="arc", outline="green", width=12)
+        self.canvas.create_arc(20, 20, 160, 160, start=216, extent=36, style="arc", outline="#9ACD32", width=12)
+        self.canvas.create_arc(20, 20, 160, 160, start=252, extent=36, style="arc", outline="yellow", width=12)
+        self.canvas.create_arc(20, 20, 160, 160, start=288, extent=36, style="arc", outline="orange", width=12)
+        self.canvas.create_arc(20, 20, 160, 160, start=324, extent=36, style="arc", outline="red", width=12)
+
+        self.igla = self.canvas.create_line(90, 90, 90, 30, width=3, fill="black")
+        self.canvas.create_oval(84, 84, 96, 96, fill="black")
+
+        self.label_wartosc = tk.Label(self, text=f"0 {jednostka}", font=("Arial", 10), bg="white")
+        self.label_wartosc.pack()
+
+    def aktualizuj(self, wartosc):
+        import math
+
+        wartosc = max(self.min_val, min(wartosc, self.max_val))
+        procent = (wartosc - self.min_val) / (self.max_val - self.min_val)
+
+        # zakres kąta: 180° do 0°
+        kat = 180 - (180 * procent)
+        rad = math.radians(kat)
+
+        x0, y0 = 90, 90
+        dl = 55
+        x1 = x0 + dl * math.cos(rad)
+        y1 = y0 - dl * math.sin(rad)
+
+        self.canvas.coords(self.igla, x0, y0, x1, y1)
+        self.label_wartosc.config(text=f"{wartosc:.0f} {self.jednostka}")
+
+
 # =========================================================
 # PARAMETRY CHŁODZENIA
 # =========================================================
@@ -129,8 +263,8 @@ czujnik_obecnosci = Urzadzenie("czujnik obecności operatora", "aktywne")
 naped_pneumatyczny = Urzadzenie("napęd pneumatyczny", "ON")
 
 silnik = Silnik("silnik", "ON")
-pompa_chlodnicza1 = Silnik("pompa_chlodnicza", "ON")
-pompa_chlodnicza2 = Silnik("pompa_chlodnicza", "OFF")
+pompa_chlodnicza1 = Silnik("pompa_chlodnicza1", "ON")
+pompa_chlodnicza2 = Silnik("pompa_chlodnicza2", "OFF")
 
 wentylator1 = Wentylator("wentylator_chlodzenia", "ON")
 wentylator2 = Wentylator("wentylator_chlodzenia", "OFF")
@@ -656,41 +790,127 @@ class PanelDyspozytorski:
         self.wyczysc_content()
 
         tk.Label(
-            self.content_frame, text="Stan urządzeń",
-            font=("Arial", 22, "bold"), bg="white"
-        ).pack(pady=20)
+            self.content_frame,
+            text="Stan urządzeń",
+            font=("Arial", 22, "bold"),
+            bg="white"
+        ).pack(pady=10)
 
-        self.urzadzenia_labels = []
-        for _ in range(12):
-            lbl = tk.Label(self.content_frame, font=("Arial", 13), bg="white")
-            lbl.pack(anchor="w", padx=20, pady=4)
-            self.urzadzenia_labels.append(lbl)
+        # główny kontener
+        self.urzadzenia_main = tk.Frame(self.content_frame, bg="white")
+        self.urzadzenia_main.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # =========================
+        # GÓRNY RZĄD - temperatury
+        # =========================
+        temp_frame = tk.Frame(self.urzadzenia_main, bg="white")
+        temp_frame.pack(pady=10)
+
+        self.slupek_temp_silnik = PionowySlupek(temp_frame, "Temp. silnika", 35, 95, "°C")
+        self.slupek_temp_silnik.pack(side="left", padx=15)
+
+        self.slupek_temp_pompa1 = PionowySlupek(temp_frame, "Temp. pompa 1", 18, 75, "°C")
+        self.slupek_temp_pompa1.pack(side="left", padx=15)
+
+        self.slupek_temp_pompa2 = PionowySlupek(temp_frame, "Temp. pompa 2", 18, 75, "°C")
+        self.slupek_temp_pompa2.pack(side="left", padx=15)
+
+        # =========================
+        # ŚRODKOWY RZĄD - obroty
+        # =========================
+        obroty_frame = tk.Frame(self.urzadzenia_main, bg="white")
+        obroty_frame.pack(pady=10)
+
+        self.wsk_silnik = PolkolistyWskaznik(obroty_frame, "Silnik", 0, 3000, "RPM")
+        self.wsk_silnik.pack(side="left", padx=15)
+
+        self.wsk_pompa1 = PolkolistyWskaznik(obroty_frame, "Pompa 1", 0, 2600, "RPM")
+        self.wsk_pompa1.pack(side="left", padx=15)
+
+        self.wsk_pompa2 = PolkolistyWskaznik(obroty_frame, "Pompa 2", 0, 2600, "RPM")
+        self.wsk_pompa2.pack(side="left", padx=15)
+
+        self.wsk_went1 = PolkolistyWskaznik(obroty_frame, "Wentylator 1", 0, 3200, "RPM")
+        self.wsk_went1.pack(side="left", padx=15)
+
+        self.wsk_went2 = PolkolistyWskaznik(obroty_frame, "Wentylator 2", 0, 3200, "RPM")
+        self.wsk_went2.pack(side="left", padx=15)
+
+        # =========================
+        # DOLNY RZĄD - lampki statusu
+        # =========================
+        lampki_frame = tk.Frame(self.urzadzenia_main, bg="white")
+        lampki_frame.pack(pady=15)
+
+        self.lampka_silnik = LampkaStatusu(lampki_frame, "Silnik")
+        self.lampka_silnik.pack(side="left", padx=10)
+
+        self.lampka_pompa1 = LampkaStatusu(lampki_frame, "Pompa 1")
+        self.lampka_pompa1.pack(side="left", padx=10)
+
+        self.lampka_pompa2 = LampkaStatusu(lampki_frame, "Pompa 2")
+        self.lampka_pompa2.pack(side="left", padx=10)
+
+        self.lampka_went1 = LampkaStatusu(lampki_frame, "Wentylator 1")
+        self.lampka_went1.pack(side="left", padx=10)
+
+        self.lampka_went2 = LampkaStatusu(lampki_frame, "Wentylator 2")
+        self.lampka_went2.pack(side="left", padx=10)
+
+        self.lampka_zasilanie = LampkaStatusu(lampki_frame, "Zasilanie aw.")
+        self.lampka_zasilanie.pack(side="left", padx=10)
+
+        # dodatkowy opis tekstowy
+        self.opis_stanow = tk.Label(
+            self.urzadzenia_main,
+            text="",
+            font=("Arial", 11),
+            bg="white",
+            justify="left"
+        )
+        self.opis_stanow.pack(pady=10)
 
         self.odswiez_stan_urzadzen()
 
     def odswiez_stan_urzadzen(self):
         if self.aktualny_widok != "urzadzenia":
             return
-        if not hasattr(self, "urzadzenia_labels"):
-            return
 
-        dane = [
-            f"Silnik - stan: {silnik.stan}, temperatura: {silnik.monitorowanie_temperatury():.2f} °C",
-            f"Pompa chłodnicza 1 - stan: {pompa_chlodnicza1.stan}, temperatura: {pompa_chlodnicza1.monitorowanie_temperatury():.2f} °C",
-            f"Pompa chłodnicza 2 - stan: {pompa_chlodnicza2.stan}, temperatura: {pompa_chlodnicza2.monitorowanie_temperatury():.2f} °C",
-            f"Wentylator 1 - stan: {wentylator1.stan}, obroty: {wentylator1.obroty_wentylatora:.2f} RPM",
-            f"Wentylator 2 - stan: {wentylator2.stan}, obroty: {wentylator2.obroty_wentylatora:.2f} RPM",
-            f"Filtr powietrza 1 - wydajność: {filtr_powietrza1.wydajnosc_wentylatora():.2f} m³/h",
-            f"Filtr powietrza 2 - wydajność: {filtr_powietrza2.wydajnosc_wentylatora():.2f} m³/h",
-            f"Zasilanie główne - stan: {zasilanie_glowne.stan}",
-            f"Zasilanie awaryjne - stan: {zasilanie_awaryjne.stan}",
-            f"Drzwi bezpieczeństwa - stan: {drzwi_bezpieczenstwa.stan}",
-            f"Czujnik obecności operatora - stan: {czujnik_obecnosci.stan}",
-            f"Napęd pneumatyczny - stan: {naped_pneumatyczny.stan}",
-        ]
+        # słupki temperatur
+        self.slupek_temp_silnik.aktualizuj(silnik.monitorowanie_temperatury())
+        self.slupek_temp_pompa1.aktualizuj(pompa_chlodnicza1.monitorowanie_temperatury())
+        self.slupek_temp_pompa2.aktualizuj(pompa_chlodnicza2.monitorowanie_temperatury())
 
-        for lbl, tekst in zip(self.urzadzenia_labels, dane):
-            lbl.config(text=tekst)
+        # półkola obrotów
+        self.wsk_went1.aktualizuj(wentylator1.obroty_wentylatora)
+        self.wsk_went2.aktualizuj(wentylator2.obroty_wentylatora)
+        self.wsk_silnik.aktualizuj(silnik.monitorowanie_obrotow())
+        self.wsk_pompa1.aktualizuj(pompa_chlodnicza1.monitorowanie_obrotow())
+        self.wsk_pompa2.aktualizuj(pompa_chlodnicza2.monitorowanie_obrotow())
+        self.wsk_went1.aktualizuj(wentylator1.obroty_wentylatora)
+        self.wsk_went2.aktualizuj(wentylator2.obroty_wentylatora)
+
+
+        # lampki statusu
+        self.lampka_silnik.ustaw_stan(silnik.stan)
+        self.lampka_pompa1.ustaw_stan(pompa_chlodnicza1.stan)
+        self.lampka_pompa2.ustaw_stan(pompa_chlodnicza2.stan)
+        self.lampka_went1.ustaw_stan(wentylator1.stan)
+        self.lampka_went2.ustaw_stan(wentylator2.stan)
+        self.lampka_zasilanie.ustaw_stan(zasilanie_awaryjne.stan)
+
+
+        tekst = (
+            f"Silnik: {silnik.temperatura:.1f} °C, {silnik.obroty:.0f} RPM | "
+            f"Pompa 1: {pompa_chlodnicza1.temperatura:.1f} °C, {pompa_chlodnicza1.obroty:.0f} RPM | "
+            f"Pompa 2: {pompa_chlodnicza2.temperatura:.1f} °C, {pompa_chlodnicza2.obroty:.0f} RPM\n"
+            f"Zasilanie główne: {zasilanie_glowne.stan} | "
+            f"Zasilanie awaryjne: {zasilanie_awaryjne.stan} | "
+            f"Drzwi bezpieczeństwa: {drzwi_bezpieczenstwa.stan} | "
+            f"Czujnik obecności: {czujnik_obecnosci.stan}"
+        )
+        self.opis_stanow.config(text=tekst)
+
 
     def pokaz_stan_produkcji(self):
         self.aktualny_widok = "produkcja"
