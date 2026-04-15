@@ -4,7 +4,7 @@ from tkinter import ttk, messagebox, filedialog
 
 class RejestrWidget(tk.Frame):
     def __init__(self, parent, nazwa_rejestru="A", label_position="left"):
-        super().__init__(parent, bg="white", bd=1, relief="solid")
+        super().__init__(parent, bg="#e0c8e1", bd=1, relief="solid")#"#f2a1da  #efc0fc  f7d5f9
         self.nazwa_rejestru = nazwa_rejestru
         self.label_position = label_position
         self.wartosc = 0
@@ -22,14 +22,14 @@ class RejestrWidget(tk.Frame):
                 self,
                 text=self.nazwa_rejestru,
                 font=("Arial", 16, "bold"),
-                bg="white"
+                bg="#e0c8e1"
             ).grid(row=start_row, column=0, rowspan=2, padx=(5, 10), sticky="ns")
         else:
             tk.Label(
                 self,
                 text=self.nazwa_rejestru,
                 font=("Arial", 12, "bold"),
-                bg="white"
+                bg="#e0c8e1"
             ).grid(row=0, column=0, columnspan=18, pady=(0, 5), sticky="ew")
 
         for i in range(16):
@@ -43,7 +43,7 @@ class RejestrWidget(tk.Frame):
                 self,
                 variable=var,
                 value=1,
-                bg="white",
+                bg="#e0c8e1",
                 indicatoron=True
             )
             rb1.grid(row=start_row, column=kol, padx=padx_val)
@@ -52,22 +52,22 @@ class RejestrWidget(tk.Frame):
                 self,
                 variable=var,
                 value=0,
-                bg="white",
+                bg="#e0c8e1",
                 indicatoron=True
             )
             rb0.grid(row=start_row + 1, column=kol, padx=padx_val)
 
-        tk.Label(self, text="1", bg="white", font=("Arial", 9, "bold")).grid(
+        tk.Label(self, text="1", bg="#e0c8e1", font=("Arial", 9, "bold")).grid(
             row=start_row, column=17, padx=(5, 2)
         )
-        tk.Label(self, text="0", bg="white", font=("Arial", 9, "bold")).grid(
+        tk.Label(self, text="0", bg="#e0c8e1", font=("Arial", 9, "bold")).grid(
             row=start_row + 1, column=17, padx=(5, 2)
         )
 
-        tk.Label(self, text="15-bit", bg="white", font=("Arial", 9)).grid(
+        tk.Label(self, text="15-bit", bg="#e0c8e1", font=("Arial", 9)).grid(
             row=start_row + 2, column=1, columnspan=2, sticky="w"
         )
-        tk.Label(self, text="0-bit", bg="white", font=("Arial", 9)).grid(
+        tk.Label(self, text="0-bit", bg="#e0c8e1", font=("Arial", 9)).grid(
             row=start_row + 2, column=15, columnspan=2, sticky="e"
         )
 
@@ -101,10 +101,10 @@ class RejestrWidget(tk.Frame):
             left_label = f"{self.nazwa_rejestru}H"
             right_label = f"{self.nazwa_rejestru}L"
 
-        tk.Label(self, text=left_label, bg="white", font=("Arial", 9)).grid(
+        tk.Label(self, text=left_label, bg="#e0c8e1", font=("Arial", 9)).grid(
             row=start_row + 4, column=5, columnspan=2
         )
-        tk.Label(self, text=right_label, bg="white", font=("Arial", 9)).grid(
+        tk.Label(self, text=right_label, bg="#e0c8e1", font=("Arial", 9)).grid(
             row=start_row + 4, column=7, columnspan=2
         )
 
@@ -152,7 +152,7 @@ class Aplikacja:
     def __init__(self, root):
         self.root = root
         self.root.title("Symulator rejestrów i operacji")
-        self.root.configure(bg="white")
+        self.root.configure(bg="#bdd7ec")
         self.root.state("zoomed")
 
         self.lista_instrukcji = []
@@ -164,26 +164,26 @@ class Aplikacja:
         self.zbuduj_gui()
 
     def zbuduj_gui(self):
-        content_frame = tk.Frame(self.root, bg="white")
+        content_frame = tk.Frame(self.root, bg="#bdd7ec")
         content_frame.grid(row=0, column=0, sticky="nsew")
         content_frame.rowconfigure(0, weight=3)
         content_frame.rowconfigure(1, weight=1)
         content_frame.columnconfigure(0, weight=1)
 
-        top_frame = tk.Frame(content_frame, bg="white")
+        top_frame = tk.Frame(content_frame, bg="#bdd7ec")
         top_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=(20, 10))
         top_frame.columnconfigure(0, weight=1)
         top_frame.columnconfigure(1, weight=1)
         top_frame.rowconfigure(0, weight=1)
 
-        left_frame = tk.Frame(top_frame, bg="white")
+        left_frame = tk.Frame(top_frame, bg="#bdd7ec")
         left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 20))
         left_frame.columnconfigure(0, weight=1)
         left_frame.rowconfigure(0, weight=1)
         left_frame.rowconfigure(1, weight=1)
         left_frame.rowconfigure(2, weight=1)
 
-        right_frame = tk.Frame(top_frame, bg="white")
+        right_frame = tk.Frame(top_frame, bg="#bdd7ec")
         right_frame.grid(row=0, column=1, sticky="nsew", padx=(20, 0))
         right_frame.columnconfigure(0, weight=1)
         right_frame.rowconfigure(0, weight=1)
@@ -209,7 +209,7 @@ class Aplikacja:
         self.rejestr_D = RejestrWidget(right_frame, "D", label_position="left")
         self.rejestr_D.grid(row=1, column=0, sticky="nsew")
 
-        program_frame = tk.Frame(right_frame, bg="white", bd=2, relief="groove")
+        program_frame = tk.Frame(right_frame, bg="#e0c8e1", bd=2, relief="groove")
         program_frame.grid(row=2, column=0, sticky="nsew", pady=(20, 0))
         program_frame.columnconfigure(0, weight=1)
         program_frame.rowconfigure(1, weight=1)
@@ -218,7 +218,7 @@ class Aplikacja:
             program_frame,
             text="Program",
             font=("Arial", 13, "bold"),
-            bg="white"
+            bg="#e0c8e1"
         ).grid(row=0, column=0, sticky="w", padx=10, pady=(10, 5))
 
         self.pole_programu = tk.Text(
@@ -226,7 +226,8 @@ class Aplikacja:
             width=45,
             height=10,
             font=("Courier New", 11),
-            wrap="none"
+            wrap="none",
+            state="disabled"
         )
         self.pole_programu.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
         self.pole_programu.tag_configure("aktualna_linia", background="yellow")
@@ -235,12 +236,12 @@ class Aplikacja:
             program_frame,
             text="Aktualna instrukcja: brak programu",
             font=("Arial", 11, "bold"),
-            bg="white",
+            bg="#e0c8e1",
             fg="darkgreen"
         )
         self.label_aktualna_instrukcja.grid(row=2, column=0, sticky="w", padx=10, pady=(0, 10))
 
-        operacje_frame = tk.Frame(content_frame, bg="white", bd=2, relief="groove")
+        operacje_frame = tk.Frame(content_frame, bg="#e0c8e1", bd=2, relief="groove")
         operacje_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 20))
 
         for c in range(11):
@@ -250,19 +251,20 @@ class Aplikacja:
             operacje_frame,
             text="Wykonywanie operacji na rejestrach",
             font=("Arial", 14, "bold"),
-            bg="white"
+            bg="#e0c8e1"
         ).grid(row=0, column=0, columnspan=11, pady=(10, 15))
 
-        tk.Label(operacje_frame, text="Rozkaz:", font=("Arial", 11, "bold"), bg="white").grid(row=1, column=0, padx=10, pady=5)
-        tk.Label(operacje_frame, text="Źródło:", font=("Arial", 11, "bold"), bg="white").grid(row=1, column=1, padx=10, pady=5)
-        tk.Label(operacje_frame, text="Tryb:", font=("Arial", 11, "bold"), bg="white").grid(row=1, column=2, padx=10, pady=5)
-        tk.Label(operacje_frame, text="Cel:", font=("Arial", 11, "bold"), bg="white").grid(row=1, column=3, padx=10, pady=5)
+        tk.Label(operacje_frame, text="Rozkaz:", font=("Arial", 11, "bold"), bg="#e0c8e1").grid(row=1, column=0, padx=10, pady=5)
+        tk.Label(operacje_frame, text="Źródło:", font=("Arial", 11, "bold"), bg="#e0c8e1").grid(row=1, column=1, padx=10, pady=5)
+        tk.Label(operacje_frame, text="Tryb:", font=("Arial", 11, "bold"), bg="#e0c8e1").grid(row=1, column=2, padx=10, pady=5)
+        tk.Label(operacje_frame, text="Cel:", font=("Arial", 11, "bold"), bg="#e0c8e1").grid(row=1, column=3, padx=10, pady=5)
 
         self.combo_operacja = ttk.Combobox(
             operacje_frame,
             values=["MOV", "ADD", "SUB"],
             state="readonly",
-            width=10
+            width=10,
+            background="#f5e5ec"
         )
         self.combo_operacja.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
         self.combo_operacja.set("MOV")
@@ -348,7 +350,7 @@ class Aplikacja:
             operacje_frame,
             text="",
             font=("Arial", 11),
-            bg="white",
+            bg="#e0c8e1",
             fg="blue"
         )
         self.label_info.grid(row=3, column=0, columnspan=11, pady=(10, 10), sticky="w")
@@ -447,7 +449,9 @@ class Aplikacja:
             wartosc_imm = self.rejestr_natychmiastowy.pobierz_wartosc()
             instrukcja = f"{operacja} {cel_asm}, {wartosc_imm}"
 
+        self.pole_programu.config(state="normal")
         self.pole_programu.insert(tk.END, instrukcja + "\n")
+        self.pole_programu.config(state="disabled")
         self.label_info.config(text=f"Dodano do programu: {instrukcja}")
 
     def zaladuj_program_z_pola(self):
@@ -562,18 +566,23 @@ class Aplikacja:
     def reset_programu(self):
         self.aktualny_krok = 0
         self.lista_instrukcji = []
+        self.pole_programu.config(state="normal")
         self.pole_programu.delete("1.0", tk.END)
+        self.pole_programu.config(state="disabled")
 
         self.odswiez_podswietlenie()
         self.aktualizuj_label_instrukcji()
         self.label_info.config(text="Zresetowano stan wykonywania programu.")
 
     def odswiez_podswietlenie(self):
+        self.pole_programu.config(state="normal")
         self.pole_programu.tag_remove("aktualna_linia", "1.0", tk.END)
 
         if self.lista_instrukcji and self.aktualny_krok < len(self.lista_instrukcji):
             nr_linii = self.znajdz_rzeczywista_linie(self.aktualny_krok)
             self.pole_programu.tag_add("aktualna_linia", f"{nr_linii}.0", f"{nr_linii}.end")
+        
+        self.pole_programu.config(state="disabled")
 
     def znajdz_rzeczywista_linie(self, indeks_instrukcji):
         tekst = self.pole_programu.get("1.0", tk.END).splitlines()
@@ -639,8 +648,10 @@ class Aplikacja:
             with open(sciezka, "r", encoding="utf-8") as plik:
                 tekst_programu = plik.read()
 
+            self.pole_programu.config(state="normal")
             self.pole_programu.delete("1.0", tk.END)
             self.pole_programu.insert("1.0", tekst_programu)
+            self.pole_programu.config(state="disabled")
 
             self.lista_instrukcji = []
             self.aktualny_krok = 0
