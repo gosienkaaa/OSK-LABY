@@ -562,6 +562,8 @@ class Aplikacja:
     def reset_programu(self):
         self.aktualny_krok = 0
         self.lista_instrukcji = []
+        self.pole_programu.delete("1.0", tk.END)
+
         self.odswiez_podswietlenie()
         self.aktualizuj_label_instrukcji()
         self.label_info.config(text="Zresetowano stan wykonywania programu.")
