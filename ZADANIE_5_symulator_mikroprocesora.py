@@ -8,34 +8,37 @@ class RejestrWidget(tk.Frame):
         self.nazwa_rejestru = nazwa_rejestru
         self.label_position = label_position
         self.wartosc = 0
-
         self.bity = []
         self.zbuduj_widget()
 
     def zbuduj_widget(self):
         start_row = 1 if self.label_position == "top" else 0
 
+        # skalowanie siatki wewnątrz widżetu
+        for c in range(18):
+            self.grid_columnconfigure(c, weight=1)
+
         if self.label_position == "left":
             tk.Label(
                 self,
                 text=self.nazwa_rejestru,
-                font=("Arial", 20, "bold"),
+                font=("Arial", 16, "bold"),
                 bg="white"
-            ).grid(row=start_row, column=0, rowspan=2, padx=(5, 15))
+            ).grid(row=start_row, column=0, rowspan=2, padx=(5, 10), sticky="ns")
         else:
             tk.Label(
                 self,
                 text=self.nazwa_rejestru,
-                font=("Arial", 14, "bold"),
+                font=("Arial", 12, "bold"),
                 bg="white"
-            ).grid(row=0, column=0, columnspan=18, pady=(0, 5))
+            ).grid(row=0, column=0, columnspan=18, pady=(0, 5), sticky="ew")
 
         for i in range(16):
             var = tk.IntVar(value=0)
             self.bity.append(var)
 
             kol = i + 1
-            padx_val = (2, 10) if i == 7 else 2
+            padx_val = (1, 6) if i == 7 else 1
 
             rb1 = tk.Radiobutton(
                 self,
@@ -55,47 +58,44 @@ class RejestrWidget(tk.Frame):
             )
             rb0.grid(row=start_row + 1, column=kol, padx=padx_val)
 
-        tk.Label(self, text="1", bg="white", font=("Arial", 10, "bold")).grid(
-            row=start_row, column=17, padx=(8, 2)
+        tk.Label(self, text="1", bg="white", font=("Arial", 9, "bold")).grid(
+            row=start_row, column=17, padx=(5, 2)
         )
-        tk.Label(self, text="0", bg="white", font=("Arial", 10, "bold")).grid(
-            row=start_row + 1, column=17, padx=(8, 2)
+        tk.Label(self, text="0", bg="white", font=("Arial", 9, "bold")).grid(
+            row=start_row + 1, column=17, padx=(5, 2)
         )
 
-        tk.Label(self, text="15-bit", bg="white", font=("Arial", 10)).grid(
+        tk.Label(self, text="15-bit", bg="white", font=("Arial", 9)).grid(
             row=start_row + 2, column=1, columnspan=2, sticky="w"
         )
-        tk.Label(self, text="0-bit", bg="white", font=("Arial", 10)).grid(
+        tk.Label(self, text="0-bit", bg="white", font=("Arial", 9)).grid(
             row=start_row + 2, column=15, columnspan=2, sticky="e"
         )
 
-        # pole AH
+        # pola high/low
         self.entry_high = tk.Entry(
             self,
             width=8,
             font=("Courier New", 11, "bold"),
             justify="center"
         )
-        self.entry_high.grid(row=start_row + 3, column=5, columnspan=2, pady=4, padx=(3, 0))
+        self.entry_high.grid(row=start_row + 3, column=5, columnspan=2, pady=4, padx=(3, 0), sticky="ew")
 
-        # pole AL
         self.entry_low = tk.Entry(
             self,
             width=8,
             font=("Courier New", 11, "bold"),
             justify="center"
         )
-        self.entry_low.grid(row=start_row + 3, column=7, columnspan=2, pady=4, padx=(0, 3))
+        self.entry_low.grid(row=start_row + 3, column=7, columnspan=2, pady=4, padx=(0, 3), sticky="ew")
 
-        # przycisk WPISZ po prawej
         tk.Button(
             self,
             text="WPISZ",
             width=7,
             command=self.wpisz_do_rejestru
-        ).grid(row=start_row + 3, column=9, padx=(6,0))
+        ).grid(row=start_row + 3, column=9, padx=(6, 0), sticky="w")
 
-        # podpisy AH AL
         if self.label_position == "top":
             left_label = "in H"
             right_label = "in L"
@@ -106,23 +106,8 @@ class RejestrWidget(tk.Frame):
         tk.Label(self, text=left_label, bg="white", font=("Arial", 9)).grid(
             row=start_row + 4, column=5, columnspan=2
         )
-
         tk.Label(self, text=right_label, bg="white", font=("Arial", 9)).grid(
             row=start_row + 4, column=7, columnspan=2
-        )
-
-        if self.label_position == "top":
-            left_label = "in H"
-            right_label = "in L"
-        else:
-            left_label = f"{self.nazwa_rejestru}H"
-            right_label = f"{self.nazwa_rejestru}L"
-
-        tk.Label(self, text=left_label, bg="white", font=("Arial", 11)).grid(
-            row=start_row + 5, column=3, sticky="w"
-        )
-        tk.Label(self, text=right_label, bg="white", font=("Arial", 11)).grid(
-            row=start_row + 5, column=10, sticky="e"
         )
 
         self.odswiez_pola()
@@ -175,50 +160,70 @@ class Aplikacja:
         self.lista_instrukcji = []
         self.aktualny_krok = 0
 
+        # skalowanie głównego okna
+        self.root.rowconfigure(0, weight=1)
+        self.root.columnconfigure(0, weight=1)
+
         self.zbuduj_gui()
 
     def zbuduj_gui(self):
         content_frame = tk.Frame(self.root, bg="white")
-        content_frame.pack(fill="both", expand=True)
+        content_frame.grid(row=0, column=0, sticky="nsew")
+        content_frame.rowconfigure(0, weight=3)
+        content_frame.rowconfigure(1, weight=1)
+        content_frame.columnconfigure(0, weight=1)
 
         top_frame = tk.Frame(content_frame, bg="white")
-        top_frame.pack(fill="both", expand=True, pady=(20, 10))
+        top_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=(20, 10))
+        top_frame.columnconfigure(0, weight=1)
+        top_frame.columnconfigure(1, weight=1)
+        top_frame.rowconfigure(0, weight=1)
 
         left_frame = tk.Frame(top_frame, bg="white")
-        left_frame.pack(side="left", padx=(20, 40), anchor="n")
+        left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 20))
+        left_frame.columnconfigure(0, weight=1)
+        left_frame.rowconfigure(0, weight=1)
+        left_frame.rowconfigure(1, weight=1)
+        left_frame.rowconfigure(2, weight=1)
 
         right_frame = tk.Frame(top_frame, bg="white")
-        right_frame.pack(side="left", padx=(0, 20), anchor="n")
+        right_frame.grid(row=0, column=1, sticky="nsew", padx=(20, 0))
+        right_frame.columnconfigure(0, weight=1)
+        right_frame.rowconfigure(0, weight=1)
+        right_frame.rowconfigure(1, weight=1)
+        right_frame.rowconfigure(2, weight=2)
 
         self.rejestr_A = RejestrWidget(left_frame, "A", label_position="left")
-        self.rejestr_A.pack(pady=(0, 15), anchor="nw")
+        self.rejestr_A.grid(row=0, column=0, sticky="nsew", pady=(0, 15))
 
         self.rejestr_B = RejestrWidget(left_frame, "B", label_position="left")
-        self.rejestr_B.pack(anchor="nw")
+        self.rejestr_B.grid(row=1, column=0, sticky="nsew")
 
         self.rejestr_natychmiastowy = RejestrWidget(
             left_frame,
             "Argument dla trybu natychmiastowego",
             label_position="top"
         )
-        self.rejestr_natychmiastowy.pack(pady=(30, 0), anchor="nw")
+        self.rejestr_natychmiastowy.grid(row=2, column=0, sticky="nsew", pady=(30, 0))
 
         self.rejestr_C = RejestrWidget(right_frame, "C", label_position="left")
-        self.rejestr_C.pack(pady=(0, 15), anchor="nw")
+        self.rejestr_C.grid(row=0, column=0, sticky="nsew", pady=(0, 15))
 
         self.rejestr_D = RejestrWidget(right_frame, "D", label_position="left")
-        self.rejestr_D.pack(anchor="nw")
+        self.rejestr_D.grid(row=1, column=0, sticky="nsew")
 
         # pole programu pod rejestrem D
         program_frame = tk.Frame(right_frame, bg="white", bd=2, relief="groove")
-        program_frame.pack(pady=(20, 0), anchor="nw", fill="x")
+        program_frame.grid(row=2, column=0, sticky="nsew", pady=(20, 0))
+        program_frame.columnconfigure(0, weight=1)
+        program_frame.rowconfigure(1, weight=1)
 
         tk.Label(
             program_frame,
             text="Program",
             font=("Arial", 13, "bold"),
             bg="white"
-        ).pack(anchor="w", padx=10, pady=(10, 5))
+        ).grid(row=0, column=0, sticky="w", padx=10, pady=(10, 5))
 
         self.pole_programu = tk.Text(
             program_frame,
@@ -227,7 +232,7 @@ class Aplikacja:
             font=("Courier New", 11),
             wrap="none"
         )
-        self.pole_programu.pack(padx=10, pady=(0, 10))
+        self.pole_programu.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
         self.pole_programu.tag_configure("aktualna_linia", background="yellow")
 
         self.label_aktualna_instrukcja = tk.Label(
@@ -237,10 +242,13 @@ class Aplikacja:
             bg="white",
             fg="darkgreen"
         )
-        self.label_aktualna_instrukcja.pack(anchor="w", padx=10, pady=(0, 10))
+        self.label_aktualna_instrukcja.grid(row=2, column=0, sticky="w", padx=10, pady=(0, 10))
 
-        operacje_frame = tk.Frame(self.root, bg="white", bd=2, relief="groove")
-        operacje_frame.pack(fill="x", padx=20, pady=(0, 20))
+        operacje_frame = tk.Frame(content_frame, bg="white", bd=2, relief="groove")
+        operacje_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 20))
+
+        for c in range(9):
+            operacje_frame.columnconfigure(c, weight=1)
 
         tk.Label(
             operacje_frame,
@@ -260,7 +268,7 @@ class Aplikacja:
             state="readonly",
             width=10
         )
-        self.combo_operacja.grid(row=2, column=0, padx=10, pady=5)
+        self.combo_operacja.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
         self.combo_operacja.set("MOV")
 
         self.combo_zrodlo = ttk.Combobox(
@@ -269,7 +277,7 @@ class Aplikacja:
             state="readonly",
             width=10
         )
-        self.combo_zrodlo.grid(row=2, column=1, padx=10, pady=5)
+        self.combo_zrodlo.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
         self.combo_zrodlo.set("B")
 
         self.combo_tryb_zrodla = ttk.Combobox(
@@ -278,7 +286,7 @@ class Aplikacja:
             state="readonly",
             width=15
         )
-        self.combo_tryb_zrodla.grid(row=2, column=2, padx=10, pady=5)
+        self.combo_tryb_zrodla.grid(row=2, column=2, padx=10, pady=5, sticky="ew")
         self.combo_tryb_zrodla.set("Rejestrowy")
         self.combo_tryb_zrodla.bind("<<ComboboxSelected>>", self.zmien_tryb_zrodla)
 
@@ -288,48 +296,43 @@ class Aplikacja:
             state="readonly",
             width=10
         )
-        self.combo_cel.grid(row=2, column=3, padx=10, pady=5)
+        self.combo_cel.grid(row=2, column=3, padx=10, pady=5, sticky="ew")
         self.combo_cel.set("A")
 
         tk.Button(
             operacje_frame,
             text="WYKONAJ OPERACJĘ",
             font=("Arial", 11, "bold"),
-            command=self.wykonaj_operacje,
-            width=20
-        ).grid(row=2, column=4, padx=10, pady=5)
+            command=self.wykonaj_operacje
+        ).grid(row=2, column=4, padx=10, pady=5, sticky="ew")
 
         tk.Button(
             operacje_frame,
             text="WPISZ DO PROGRAMU",
             font=("Arial", 11, "bold"),
-            command=self.wpisz_do_programu,
-            width=20
-        ).grid(row=2, column=5, padx=10, pady=5)
+            command=self.wpisz_do_programu
+        ).grid(row=2, column=5, padx=10, pady=5, sticky="ew")
 
         tk.Button(
             operacje_frame,
             text="WYKONAJ KROK",
             font=("Arial", 11, "bold"),
-            command=self.wykonaj_krok_programu,
-            width=18
-        ).grid(row=2, column=6, padx=10, pady=5)
+            command=self.wykonaj_krok_programu
+        ).grid(row=2, column=6, padx=10, pady=5, sticky="ew")
 
         tk.Button(
             operacje_frame,
             text="WYKONAJ PROGRAM",
             font=("Arial", 11, "bold"),
-            command=self.wykonaj_caly_program,
-            width=18
-        ).grid(row=2, column=7, padx=10, pady=5)
+            command=self.wykonaj_caly_program
+        ).grid(row=2, column=7, padx=10, pady=5, sticky="ew")
 
         tk.Button(
             operacje_frame,
             text="RESET PROGRAMU",
             font=("Arial", 11, "bold"),
-            command=self.reset_programu,
-            width=18
-        ).grid(row=2, column=8, padx=10, pady=5)
+            command=self.reset_programu
+        ).grid(row=2, column=8, padx=10, pady=5, sticky="ew")
 
         self.label_info = tk.Label(
             operacje_frame,
@@ -338,7 +341,7 @@ class Aplikacja:
             bg="white",
             fg="blue"
         )
-        self.label_info.grid(row=3, column=0, columnspan=10, pady=(10, 10))
+        self.label_info.grid(row=3, column=0, columnspan=10, pady=(10, 10), sticky="w")
 
         self.rejestr_A.ustaw_wartosc(0)
         self.rejestr_B.ustaw_wartosc(0)
@@ -348,7 +351,6 @@ class Aplikacja:
 
     def zmien_tryb_zrodla(self, event=None):
         tryb = self.combo_tryb_zrodla.get()
-
         if tryb == "Natychmiastowy":
             self.combo_zrodlo.config(state="disabled")
         else:
