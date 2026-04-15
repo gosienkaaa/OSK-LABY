@@ -5,6 +5,9 @@ from tkinter import messagebox
 import psutil
 import math
 
+ostatnie_uzycie_cpu = 0.0
+ostatnia_sprawdzona_czas_cpu = 0.0
+
 # =========================================================
 # UŻYTKOWNICY
 # =========================================================
@@ -19,7 +22,8 @@ uzytkownicy = {
 # =========================================================
 
 def uzycie_CPU():
-    return psutil.cpu_percent(interval=1) # Zmieniono na interval=1, aby uzyskać aktualne dane o obciążeniu CPU
+    # Użycie CPU odczytywane w trybie nieblokującym, dzięki czemu GUI nie zawiesza się na 1 sekundę.
+    return psutil.cpu_percent(interval=None)
 
 def wykorzystanie_RAM():
     return psutil.virtual_memory().percent
@@ -882,7 +886,13 @@ def sprawdz_i_obsluz_awarie():
         nowe_alarmy.append("Brak zasilania głównego i awaryjnego")
         zatrzymaj_linie_awaryjnie("Brak zasilania głównego i awaryjnego")
 
-    cpu = uzycie_CPU()
+    global ostatnie_uzycie_cpu, ostatnia_sprawdzona_czas_cpu
+    teraz = time.time()
+    if teraz - ostatnia_sprawdzona_czas_cpu >= 5.0:
+        ostatnie_uzycie_cpu = uzycie_CPU()
+        ostatnia_sprawdzona_czas_cpu = teraz
+
+    cpu = ostatnie_uzycie_cpu
     if cpu > PROG_CPU:
         nowe_alarmy.append("Wysokie obciążenie CPU komputera")
         dodaj_zdarzenie("OSTRZEŻENIE: obciążenie CPU przekroczyło bezpieczny próg.")
