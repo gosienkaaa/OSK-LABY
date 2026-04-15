@@ -1,0 +1,3 @@
+MOV AX, BX
+ADD CX, BX
+SUB DX, 24

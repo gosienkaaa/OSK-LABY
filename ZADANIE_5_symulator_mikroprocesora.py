@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 
 
 class RejestrWidget(tk.Frame):
@@ -14,7 +14,6 @@ class RejestrWidget(tk.Frame):
     def zbuduj_widget(self):
         start_row = 1 if self.label_position == "top" else 0
 
-        # skalowanie siatki wewnątrz widżetu
         for c in range(18):
             self.grid_columnconfigure(c, weight=1)
 
@@ -72,7 +71,6 @@ class RejestrWidget(tk.Frame):
             row=start_row + 2, column=15, columnspan=2, sticky="e"
         )
 
-        # pola high/low
         self.entry_high = tk.Entry(
             self,
             width=8,
@@ -160,7 +158,6 @@ class Aplikacja:
         self.lista_instrukcji = []
         self.aktualny_krok = 0
 
-        # skalowanie głównego okna
         self.root.rowconfigure(0, weight=1)
         self.root.columnconfigure(0, weight=1)
 
@@ -212,7 +209,6 @@ class Aplikacja:
         self.rejestr_D = RejestrWidget(right_frame, "D", label_position="left")
         self.rejestr_D.grid(row=1, column=0, sticky="nsew")
 
-        # pole programu pod rejestrem D
         program_frame = tk.Frame(right_frame, bg="white", bd=2, relief="groove")
         program_frame.grid(row=2, column=0, sticky="nsew", pady=(20, 0))
         program_frame.columnconfigure(0, weight=1)
@@ -247,7 +243,7 @@ class Aplikacja:
         operacje_frame = tk.Frame(content_frame, bg="white", bd=2, relief="groove")
         operacje_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 20))
 
-        for c in range(9):
+        for c in range(11):
             operacje_frame.columnconfigure(c, weight=1)
 
         tk.Label(
@@ -255,7 +251,7 @@ class Aplikacja:
             text="Wykonywanie operacji na rejestrach",
             font=("Arial", 14, "bold"),
             bg="white"
-        ).grid(row=0, column=0, columnspan=10, pady=(10, 15))
+        ).grid(row=0, column=0, columnspan=11, pady=(10, 15))
 
         tk.Label(operacje_frame, text="Rozkaz:", font=("Arial", 11, "bold"), bg="white").grid(row=1, column=0, padx=10, pady=5)
         tk.Label(operacje_frame, text="Źródło:", font=("Arial", 11, "bold"), bg="white").grid(row=1, column=1, padx=10, pady=5)
@@ -302,37 +298,51 @@ class Aplikacja:
         tk.Button(
             operacje_frame,
             text="WYKONAJ OPERACJĘ",
-            font=("Arial", 11, "bold"),
+            font=("Arial", 9, "bold"),
             command=self.wykonaj_operacje
         ).grid(row=2, column=4, padx=10, pady=5, sticky="ew")
 
         tk.Button(
             operacje_frame,
             text="WPISZ DO PROGRAMU",
-            font=("Arial", 11, "bold"),
+            font=("Arial", 9, "bold"),
             command=self.wpisz_do_programu
         ).grid(row=2, column=5, padx=10, pady=5, sticky="ew")
 
         tk.Button(
             operacje_frame,
             text="WYKONAJ KROK",
-            font=("Arial", 11, "bold"),
+            font=("Arial", 9, "bold"),
             command=self.wykonaj_krok_programu
         ).grid(row=2, column=6, padx=10, pady=5, sticky="ew")
 
         tk.Button(
             operacje_frame,
             text="WYKONAJ PROGRAM",
-            font=("Arial", 11, "bold"),
+            font=("Arial", 9, "bold"),
             command=self.wykonaj_caly_program
         ).grid(row=2, column=7, padx=10, pady=5, sticky="ew")
 
         tk.Button(
             operacje_frame,
             text="RESET PROGRAMU",
-            font=("Arial", 11, "bold"),
+            font=("Arial", 9, "bold"),
             command=self.reset_programu
         ).grid(row=2, column=8, padx=10, pady=5, sticky="ew")
+
+        tk.Button(
+            operacje_frame,
+            text="ZAPISZ PROGRAM",
+            font=("Arial", 9, "bold"),
+            command=self.zapisz_program_do_pliku
+        ).grid(row=2, column=9, padx=10, pady=5, sticky="ew")
+
+        tk.Button(
+            operacje_frame,
+            text="WCZYTAJ PROGRAM",
+            font=("Arial", 9, "bold"),
+            command=self.wczytaj_program_z_pliku
+        ).grid(row=2, column=10, padx=10, pady=5, sticky="ew")
 
         self.label_info = tk.Label(
             operacje_frame,
@@ -341,7 +351,7 @@ class Aplikacja:
             bg="white",
             fg="blue"
         )
-        self.label_info.grid(row=3, column=0, columnspan=10, pady=(10, 10), sticky="w")
+        self.label_info.grid(row=3, column=0, columnspan=11, pady=(10, 10), sticky="w")
 
         self.rejestr_A.ustaw_wartosc(0)
         self.rejestr_B.ustaw_wartosc(0)
@@ -412,7 +422,7 @@ class Aplikacja:
         rejestr_cel.ustaw_wartosc(wynik)
 
         self.label_info.config(
-            text=f"Wykonano: {operacja} {opis_zrodla} -> {nazwa_celu}    |    wynik zapisano do rejestru {nazwa_celu}"
+            text=f"Wykonano: {operacja} {opis_zrodla} -> {nazwa_celu} | wynik zapisano do rejestru {nazwa_celu}"
         )
 
     def wpisz_do_programu(self):
@@ -582,6 +592,62 @@ class Aplikacja:
             self.label_aktualna_instrukcja.config(
                 text=f"Aktualna instrukcja: {self.aktualny_krok + 1}"
             )
+
+    def zapisz_program_do_pliku(self):
+        tekst_programu = self.pole_programu.get("1.0", tk.END).strip()
+
+        if not tekst_programu:
+            messagebox.showwarning("Brak programu", "Pole programu jest puste.")
+            return
+
+        sciezka = filedialog.asksaveasfilename(
+            defaultextension=".asm",
+            filetypes=[
+                ("Pliki ASM", "*.asm"),
+                ("Pliki tekstowe", "*.txt"),
+                ("Wszystkie pliki", "*.*")
+            ],
+            title="Zapisz program do pliku"
+        )
+
+        if not sciezka:
+            return
+
+        try:
+            with open(sciezka, "w", encoding="utf-8") as plik:
+                plik.write(tekst_programu)
+            self.label_info.config(text=f"Program zapisano do pliku: {sciezka}")
+        except Exception as e:
+            messagebox.showerror("Błąd zapisu", f"Nie udało się zapisać pliku:\n{e}")
+
+    def wczytaj_program_z_pliku(self):
+        sciezka = filedialog.askopenfilename(
+            filetypes=[
+                ("Pliki ASM", "*.asm"),
+                ("Pliki tekstowe", "*.txt"),
+                ("Wszystkie pliki", "*.*")
+            ],
+            title="Wczytaj program z pliku"
+        )
+
+        if not sciezka:
+            return
+
+        try:
+            with open(sciezka, "r", encoding="utf-8") as plik:
+                tekst_programu = plik.read()
+
+            self.pole_programu.delete("1.0", tk.END)
+            self.pole_programu.insert("1.0", tekst_programu)
+
+            self.lista_instrukcji = []
+            self.aktualny_krok = 0
+            self.odswiez_podswietlenie()
+            self.aktualizuj_label_instrukcji()
+
+            self.label_info.config(text=f"Wczytano program z pliku: {sciezka}")
+        except Exception as e:
+            messagebox.showerror("Błąd odczytu", f"Nie udało się wczytać pliku:\n{e}")
 
 
 if __name__ == "__main__":
