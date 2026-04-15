@@ -69,28 +69,47 @@ class RejestrWidget(tk.Frame):
             row=start_row + 2, column=15, columnspan=2, sticky="e"
         )
 
+        # pole AH
+        self.entry_high = tk.Entry(
+            self,
+            width=8,
+            font=("Courier New", 11, "bold"),
+            justify="center"
+        )
+        self.entry_high.grid(row=start_row + 3, column=5, columnspan=2, pady=4, padx=(3, 0))
+
+        # pole AL
+        self.entry_low = tk.Entry(
+            self,
+            width=8,
+            font=("Courier New", 11, "bold"),
+            justify="center"
+        )
+        self.entry_low.grid(row=start_row + 3, column=7, columnspan=2, pady=4, padx=(0, 3))
+
+        # przycisk WPISZ po prawej
         tk.Button(
             self,
             text="WPISZ",
-            width=10,
+            width=7,
             command=self.wpisz_do_rejestru
-        ).grid(row=start_row + 3, column=6, columnspan=3, padx=10, pady=(5, 0))
+        ).grid(row=start_row + 3, column=9, padx=(6,0))
 
-        self.entry_high = tk.Entry(
-            self,
-            width=10,
-            font=("Courier New", 18, "bold"),
-            justify="center"
-        )
-        self.entry_high.grid(row=start_row + 4, column=3, columnspan=4, pady=5)
+        # podpisy AH AL
+        if self.label_position == "top":
+            left_label = "in H"
+            right_label = "in L"
+        else:
+            left_label = f"{self.nazwa_rejestru}H"
+            right_label = f"{self.nazwa_rejestru}L"
 
-        self.entry_low = tk.Entry(
-            self,
-            width=10,
-            font=("Courier New", 18, "bold"),
-            justify="center"
+        tk.Label(self, text=left_label, bg="white", font=("Arial", 9)).grid(
+            row=start_row + 4, column=5, columnspan=2
         )
-        self.entry_low.grid(row=start_row + 4, column=7, columnspan=4, pady=5)
+
+        tk.Label(self, text=right_label, bg="white", font=("Arial", 9)).grid(
+            row=start_row + 4, column=7, columnspan=2
+        )
 
         if self.label_position == "top":
             left_label = "in H"
@@ -153,6 +172,9 @@ class Aplikacja:
         self.root.configure(bg="white")
         self.root.state("zoomed")
 
+        self.lista_instrukcji = []
+        self.aktualny_krok = 0
+
         self.zbuduj_gui()
 
     def zbuduj_gui(self):
@@ -203,10 +225,19 @@ class Aplikacja:
             width=45,
             height=10,
             font=("Courier New", 11),
-            wrap="none",
-            state="disabled"
+            wrap="none"
         )
         self.pole_programu.pack(padx=10, pady=(0, 10))
+        self.pole_programu.tag_configure("aktualna_linia", background="yellow")
+
+        self.label_aktualna_instrukcja = tk.Label(
+            program_frame,
+            text="Aktualna instrukcja: brak programu",
+            font=("Arial", 11, "bold"),
+            bg="white",
+            fg="darkgreen"
+        )
+        self.label_aktualna_instrukcja.pack(anchor="w", padx=10, pady=(0, 10))
 
         operacje_frame = tk.Frame(self.root, bg="white", bd=2, relief="groove")
         operacje_frame.pack(fill="x", padx=20, pady=(0, 20))
@@ -276,6 +307,30 @@ class Aplikacja:
             width=20
         ).grid(row=2, column=5, padx=10, pady=5)
 
+        tk.Button(
+            operacje_frame,
+            text="WYKONAJ KROK",
+            font=("Arial", 11, "bold"),
+            command=self.wykonaj_krok_programu,
+            width=18
+        ).grid(row=2, column=6, padx=10, pady=5)
+
+        tk.Button(
+            operacje_frame,
+            text="WYKONAJ PROGRAM",
+            font=("Arial", 11, "bold"),
+            command=self.wykonaj_caly_program,
+            width=18
+        ).grid(row=2, column=7, padx=10, pady=5)
+
+        tk.Button(
+            operacje_frame,
+            text="RESET PROGRAMU",
+            font=("Arial", 11, "bold"),
+            command=self.reset_programu,
+            width=18
+        ).grid(row=2, column=8, padx=10, pady=5)
+
         self.label_info = tk.Label(
             operacje_frame,
             text="",
@@ -329,7 +384,7 @@ class Aplikacja:
         rejestr_cel = self.pobierz_widget_rejestru(nazwa_celu)
         wartosc_celu = rejestr_cel.pobierz_wartosc()
 
-        if tryb_zrodla == "Rejestr":
+        if tryb_zrodla == "Rejestrowy":
             nazwa_zrodla = self.combo_zrodlo.get()
             if not nazwa_zrodla:
                 messagebox.showwarning("Brak danych", "Wybierz rejestr źródłowy.")
@@ -338,7 +393,6 @@ class Aplikacja:
             rejestr_zrodlo = self.pobierz_widget_rejestru(nazwa_zrodla)
             wartosc_zrodla = rejestr_zrodlo.pobierz_wartosc()
             opis_zrodla = nazwa_zrodla
-
         else:
             wartosc_zrodla = self.rejestr_natychmiastowy.pobierz_wartosc()
             opis_zrodla = "IMM"
@@ -370,7 +424,7 @@ class Aplikacja:
 
         cel_asm = self.nazwa_na_assembler(nazwa_celu)
 
-        if tryb_zrodla == "Rejestr":
+        if tryb_zrodla == "Rejestrowy":
             nazwa_zrodla = self.combo_zrodlo.get()
             if not nazwa_zrodla:
                 messagebox.showwarning("Brak danych", "Wybierz rejestr źródłowy.")
@@ -381,10 +435,151 @@ class Aplikacja:
             wartosc_imm = self.rejestr_natychmiastowy.pobierz_wartosc()
             instrukcja = f"{operacja} {cel_asm}, {wartosc_imm}"
 
-        self.pole_programu.config(state="normal")
         self.pole_programu.insert(tk.END, instrukcja + "\n")
-        self.pole_programu.config(state="disabled")
         self.label_info.config(text=f"Dodano do programu: {instrukcja}")
+
+    def zaladuj_program_z_pola(self):
+        tekst = self.pole_programu.get("1.0", tk.END)
+        linie = [linia.strip() for linia in tekst.splitlines() if linia.strip()]
+
+        self.lista_instrukcji = linie
+        self.aktualny_krok = 0
+        self.odswiez_podswietlenie()
+        self.aktualizuj_label_instrukcji()
+
+    def wykonaj_instrukcje_tekstowa(self, instrukcja):
+        czesci = instrukcja.strip().split(maxsplit=1)
+        if len(czesci) != 2:
+            raise ValueError("Niepoprawna składnia instrukcji.")
+
+        operacja = czesci[0].upper()
+        argumenty = [a.strip().upper() for a in czesci[1].split(",")]
+
+        if len(argumenty) != 2:
+            raise ValueError("Instrukcja musi mieć dwa argumenty.")
+
+        cel = argumenty[0]
+        zrodlo = argumenty[1]
+
+        mapa_rejestrow = {
+            "AX": self.rejestr_A,
+            "BX": self.rejestr_B,
+            "CX": self.rejestr_C,
+            "DX": self.rejestr_D
+        }
+
+        if cel not in mapa_rejestrow:
+            raise ValueError(f"Nieznany rejestr docelowy: {cel}")
+
+        rejestr_cel = mapa_rejestrow[cel]
+        wartosc_celu = rejestr_cel.pobierz_wartosc()
+
+        if zrodlo in mapa_rejestrow:
+            wartosc_zrodla = mapa_rejestrow[zrodlo].pobierz_wartosc()
+        else:
+            try:
+                wartosc_zrodla = int(zrodlo)
+            except ValueError:
+                raise ValueError(f"Niepoprawny argument źródłowy: {zrodlo}")
+
+        if operacja == "MOV":
+            wynik = wartosc_zrodla
+        elif operacja == "ADD":
+            wynik = wartosc_celu + wartosc_zrodla
+        elif operacja == "SUB":
+            wynik = wartosc_celu - wartosc_zrodla
+        else:
+            raise ValueError(f"Nieznana instrukcja: {operacja}")
+
+        wynik &= 0xFFFF
+        rejestr_cel.ustaw_wartosc(wynik)
+
+    def wykonaj_krok_programu(self):
+        if not self.lista_instrukcji:
+            self.zaladuj_program_z_pola()
+
+        if not self.lista_instrukcji:
+            messagebox.showwarning("Brak programu", "Pole programu jest puste.")
+            return
+
+        if self.aktualny_krok >= len(self.lista_instrukcji):
+            messagebox.showinfo("Koniec programu", "Wszystkie instrukcje zostały już wykonane.")
+            return
+
+        instrukcja = self.lista_instrukcji[self.aktualny_krok]
+
+        try:
+            self.wykonaj_instrukcje_tekstowa(instrukcja)
+            self.aktualny_krok += 1
+            self.odswiez_podswietlenie()
+            self.aktualizuj_label_instrukcji()
+            self.label_info.config(text=f"Wykonano krok: {instrukcja}")
+        except Exception as e:
+            messagebox.showerror(
+                "Błąd wykonania",
+                f"Błąd w instrukcji nr {self.aktualny_krok + 1}:\n{instrukcja}\n\n{e}"
+            )
+
+    def wykonaj_caly_program(self):
+        if not self.lista_instrukcji:
+            self.zaladuj_program_z_pola()
+
+        if not self.lista_instrukcji:
+            messagebox.showwarning("Brak programu", "Pole programu jest puste.")
+            return
+
+        while self.aktualny_krok < len(self.lista_instrukcji):
+            instrukcja = self.lista_instrukcji[self.aktualny_krok]
+            try:
+                self.wykonaj_instrukcje_tekstowa(instrukcja)
+                self.aktualny_krok += 1
+            except Exception as e:
+                self.odswiez_podswietlenie()
+                self.aktualizuj_label_instrukcji()
+                messagebox.showerror(
+                    "Błąd wykonania",
+                    f"Błąd w instrukcji nr {self.aktualny_krok + 1}:\n{instrukcja}\n\n{e}"
+                )
+                return
+
+        self.odswiez_podswietlenie()
+        self.aktualizuj_label_instrukcji()
+        self.label_info.config(text="Program wykonano do końca.")
+        messagebox.showinfo("Gotowe", "Program został wykonany.")
+
+    def reset_programu(self):
+        self.aktualny_krok = 0
+        self.lista_instrukcji = []
+        self.odswiez_podswietlenie()
+        self.aktualizuj_label_instrukcji()
+        self.label_info.config(text="Zresetowano stan wykonywania programu.")
+
+    def odswiez_podswietlenie(self):
+        self.pole_programu.tag_remove("aktualna_linia", "1.0", tk.END)
+
+        if self.lista_instrukcji and self.aktualny_krok < len(self.lista_instrukcji):
+            nr_linii = self.znajdz_rzeczywista_linie(self.aktualny_krok)
+            self.pole_programu.tag_add("aktualna_linia", f"{nr_linii}.0", f"{nr_linii}.end")
+
+    def znajdz_rzeczywista_linie(self, indeks_instrukcji):
+        tekst = self.pole_programu.get("1.0", tk.END).splitlines()
+        licznik = -1
+        for i, linia in enumerate(tekst, start=1):
+            if linia.strip():
+                licznik += 1
+                if licznik == indeks_instrukcji:
+                    return i
+        return 1
+
+    def aktualizuj_label_instrukcji(self):
+        if not self.lista_instrukcji:
+            self.label_aktualna_instrukcja.config(text="Aktualna instrukcja: brak programu")
+        elif self.aktualny_krok >= len(self.lista_instrukcji):
+            self.label_aktualna_instrukcja.config(text="Aktualna instrukcja: koniec programu")
+        else:
+            self.label_aktualna_instrukcja.config(
+                text=f"Aktualna instrukcja: {self.aktualny_krok + 1}"
+            )
 
 
 if __name__ == "__main__":
