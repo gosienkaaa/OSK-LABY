@@ -37,7 +37,8 @@ class RejestrWidget(tk.Frame):
             self.bity.append(var)
 
             kol = i + 1
-            padx_val = (1, 6) if i == 7 else 1
+            padx_val =1
+
 
             rb1 = tk.Radiobutton(
                 self,
@@ -427,6 +428,10 @@ class Aplikacja:
         )
 
     def wpisz_do_programu(self):
+        # Jeśli poprzedni program został już wykonany, wyczyść pole i zresetuj stan programu.
+        if self.lista_instrukcji and self.aktualny_krok >= len(self.lista_instrukcji):
+            self.reset_programu()
+
         operacja = self.combo_operacja.get()
         tryb_zrodla = self.combo_tryb_zrodla.get()
         nazwa_celu = self.combo_cel.get()
